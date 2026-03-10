@@ -3,15 +3,16 @@
 
 
 % Title portion
-\title{Hermes: High-Performance Homomorphically Encrypted Vector Databases}
+\title{Hermes: Homomorphically Encrypted Vector Databases}
 
 \author{Dongfang Zhao}
 \affiliation{
-  \institution{High-Performance Data-Intelligent Computing (HPDC) Lab}
-  \city{}
-  \country{}
+  \institution{Tacoma School of Engineering and Technology}
+  \institution{Paul G. Allen School of Computer Science \& Engineering}
+  \city{University of Washington}
+  \country{United States}
 }
-\email{dzhao@uw.edu}
+\email{dzhao@cs.washington.edu}
 
 \usepackage{multirow}
 
@@ -117,7 +118,7 @@ Hermes is realized as a set of C++ plugins compiled against OpenFHE v1.2.4 and r
 Hermes supports full-stack encrypted query execution for common aggregate patterns. During ingestion, records are packed into ciphertexts with embedded auxiliary sums. At query time, ciphertexts are aggregated via homomorphic addition, and the result is decrypted in a single step. This design minimizes ciphertext transformations and avoids client-side orchestration, enabling secure and performant query execution entirely within the database engine.
 
 \subsection{Contributions}
-
+\don{TODO: revise technical contributions}
 This paper makes the following contributions:
 
 \begin{itemize}
