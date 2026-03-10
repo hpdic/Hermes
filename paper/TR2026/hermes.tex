@@ -49,7 +49,12 @@
 \begin{document}
 
 \begin{abstract}
-Fully Homomorphic Encryption (FHE) has long promised the ability to compute over encrypted data without revealing sensitive contents---a foundational goal for secure cloud analytics. Yet despite decades of cryptographic advances, practical integration of FHE into real-world relational databases remains elusive. This paper presents \textbf{Hermes}, the first system to enable FHE-native vector query processing inside a standard SQL engine. By leveraging the multi-slot capabilities of modern schemes, Hermes introduces a novel data model that packs multiple records per ciphertext and embeds encrypted auxiliary statistics (e.g., local sums) to support in-place updates and aggregation. To reconcile ciphertext immutability with record-level mutability, we develop new homomorphic algorithms based on slot masking, shifting, and rewriting. Hermes is implemented as native C++ loadable functions in MySQL using OpenFHE v1.2.4, comprising over 3,500 lines of code. Experiments on real-world datasets show up to 1{,}600$\times$ throughput gain in encryption and over 30$\times$ speedup in insertion compared to per-tuple baselines. Hermes brings FHE from cryptographic promise to practical reality---realizing a long-standing vision at the intersection of databases and secure computation.
+Fully Homomorphic Encryption (FHE) has long promised the ability to compute over encrypted data without revealing sensitive contents.
+Yet, despite decades of cryptographic advances, practical integration of FHE into real-world databases remains elusive due to the prohibitive overhead (both time and space) and the non-arithmetic nature of many database operations. 
+This paper presents \emph{Hermes}, the first system supporting FHE-native vector queries inside a standard SQL engine. By leveraging the multi-slot capabilities of modern FHE schemes, Hermes introduces a new data model that packs multiple records per ciphertext and embeds encrypted aggregate data (e.g., local sums) to support efficient in-place updates. 
+To overcome ciphertext immutability with record-level modifications, we develop new homomorphic algorithms based on slot masking, shifting, and rewriting. 
+Hermes has been implemented as native C++ loadable functions in MySQL using OpenFHE v1.2.4, comprising over 3,500 lines of code. 
+Experiments on real-world datasets demonstrate up to 1{,}600$\times$ higher throughput in encryption and over 30$\times$ speedup in insertion compared to native FHE implementations.
 \end{abstract}
 
 % \begin{teaserfigure}
@@ -59,7 +64,7 @@ Fully Homomorphic Encryption (FHE) has long promised the ability to compute over
 %   \label{fig:teaser}
 % \end{teaserfigure}
 
-\keywords{homomorphic encryption, encrypted databases, query processing, SIMD packing}
+\keywords{Vector databases, Fully homomorphic encryption, User-defined queries}
 
 \begin{CCSXML}
 <ccs2012>
