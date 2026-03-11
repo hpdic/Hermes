@@ -118,10 +118,26 @@ In Summary, this paper makes the following contributions:
     \item We implement Hermes as a native MySQL extension to execute homomorphic query pipelines entirely within the DBMS. Extensive evaluations demonstrate up to 1,600x higher encryption throughput and 30x insertion speedup compared to conventional FHE implementations.
 \end{itemize}
 
-\section{Preliminaries}
+\section{Related Work and Preliminaries}
+
+\subsection{Homomorphically Encrypted Databases}
+
 \don{TODO}
-\subsection{Homomorphic Encryption Background}
+One major class of encrypted databases relies on client-side processing, where queries are executed after downloading encrypted data~\cite{akavia_sec23}. While this model minimizes trust assumptions, it sacrifices the benefits of server-side scalability and often incurs high bandwidth costs.
+
+An alternative approach is to split queries between client and server, as seen in information-hiding systems~\cite{hhaci_sigmod02}, where server-side filters retrieve encrypted tuples guided by secure indices. Systems like CryptDB~\cite{popa2011cryptdb}, Arx~\cite{arx_vldb19}, and Symmetria~\cite{symmetria_vldb20} explore different trade-offs between functionality and leakage, using layered encryption, partitioned encodings, or specialized circuits.
+
+Homomorphic encryption has also been used directly in encrypted database systems, including Symmetria~\cite{symmetria_vldb20}, which uses multiplicative HE with additive extensions, and Rache~\cite{otawose_sigmod23}, which leverages layout-aware ciphertext placement and SIMD-optimized key switching. These systems often operate on scalar records and leave the ingestion process external to the system.
+
+\textbf{Hermes differs from prior systems by integrating homomorphic encryption directly into the ingestion path.} 
+Unlike approaches that rely on client-side ciphertext generation or immutable payload storage, Hermes exposes SQL-level UDFs for packing, encrypting, and mutating ciphertexts at runtime.
+Our system introduces a slot-aware data model that supports in-place ciphertext updates and maintains per-group local aggregates as part of the packing process. 
+
+\subsection{Homomorphic Encryption and Algebra}
 \label{sec:prelim-he}
+
+Homomorphic encryption (HE) enables computation over encrypted data without decryption. The seminal work by Gentry~\cite{gentry2009} introduced the first fully homomorphic encryption (FHE) scheme, laying the foundation for later constructions such as BFV~\cite{FV2012,brakerski2012}, BGV~\cite{BGV2014}, and CKKS~\cite{ckks2016}. These schemes have been implemented in libraries including SEAL~\cite{sealcrypto}, HElib~\cite{helib}, and OpenFHE~\cite{openfhe}. TFHE~\cite{torusCircuit} supports Boolean circuits and has seen recent improvements in bootstrapping performance~\cite{IEEETfhe,Guimares2024MOSFHETOS}.
+
 
 Hermes is built atop the BFV scheme~\cite{FV2012}, a lattice-based fully homomorphic encryption (FHE) construction supporting exact arithmetic over integers modulo a plaintext modulus \( t \). Let \( R = \mathbb{Z}[X]/(X^N + 1) \) be a cyclotomic ring of degree \( N = 2^k \) for some \( k \in \mathbb{N} \). A plaintext message is represented as an element of \( R_t := R / tR \), while ciphertexts reside in \( R_q^2 \), where \( q \gg t \) is a large ciphertext modulus.
 
@@ -136,7 +152,7 @@ Homomorphic operations preserve slot-wise semantics:
 \mathsf{EvalAdd}(\mathsf{Enc}(\mathbf{m}), \mathsf{Enc}(\mathbf{m'})) &= \mathsf{Enc}(\mathbf{m} + \mathbf{m'}), \\
 \mathsf{EvalMult}(\mathsf{Enc}(\mathbf{m}), \mathsf{Enc}(\mathbf{m'})) &= \mathsf{Enc}(\mathbf{m} \cdot \mathbf{m'}),
 \end{align*}
-where the arithmetic is component-wise modulo \( t \). In addition, the BFV scheme supports automorphism-based rotation operations that cyclically shift slot positions:
+where the arithmetic is component-wise modulo \( t \). In addition, the BFV scheme supports automorphism-based rotation operations, also known as \emph{Galois rotations}, which cyclically shift slot positions:
 \[
 \mathsf{EvalRotate}(\mathsf{Enc}(\mathbf{m}), r) = \mathsf{Enc}((m_{(i+r) \bmod n})_{i=0}^{n-1}).
 \]
@@ -177,29 +193,29 @@ Subsequent homomorphic operations (e.g., addition, multiplication, rotation) are
 
 This security model provides the foundation upon which encrypted database systems can be constructed: so long as no decryption is performed server-side, and all query logic is implemented using semantically secure operations, the confidentiality of underlying plaintexts is preserved.
 
-\subsection{MySQL User-Defined Functions (UDFs)}
-\label{sec:prelim-udf}
+% \subsection{MySQL User-Defined Functions (UDFs)}
+% \label{sec:prelim-udf}
 
-MySQL supports native extensibility through \emph{User-Defined Functions} (UDFs), which allow developers to register custom functions written in C/C++ as shared objects. Once registered, a UDF can be invoked in SQL queries as a first-class function, operating over tuples during query execution.
+% MySQL supports native extensibility through \emph{User-Defined Functions} (UDFs), which allow developers to register custom functions written in C/C++ as shared objects. Once registered, a UDF can be invoked in SQL queries as a first-class function, operating over tuples during query execution.
 
-A typical scalar UDF consists of the following exported routines:
-\begin{itemize}
-  \item \texttt{foo\_init} \quad ($\mathtt{foo\_init}$): initializes internal memory and checks argument types.
-  \item \texttt{foo} \quad ($\mathtt{foo}$): performs the main per-tuple computation.
-  \item \texttt{foo\_deinit} \quad ($\mathtt{foo\_deinit}$): releases allocated memory and closes resources.
-\end{itemize}
+% A typical scalar UDF consists of the following exported routines:
+% \begin{itemize}
+%   \item \texttt{foo\_init} \quad ($\mathtt{foo\_init}$): initializes internal memory and checks argument types.
+%   \item \texttt{foo} \quad ($\mathtt{foo}$): performs the main per-tuple computation.
+%   \item \texttt{foo\_deinit} \quad ($\mathtt{foo\_deinit}$): releases allocated memory and closes resources.
+% \end{itemize}
 
-Aggregate UDFs additionally implement:
-\begin{itemize}
-  \item \texttt{foo\_add} \quad ($\mathtt{foo\_add}$): accumulates intermediate results across tuples.
-  \item \texttt{foo\_clear}, \texttt{foo\_reset} \quad ($\mathtt{foo\_clear}, \mathtt{foo\_reset}$): manage state lifecycle during grouping.
-\end{itemize}
+% Aggregate UDFs additionally implement:
+% \begin{itemize}
+%   \item \texttt{foo\_add} \quad ($\mathtt{foo\_add}$): accumulates intermediate results across tuples.
+%   \item \texttt{foo\_clear}, \texttt{foo\_reset} \quad ($\mathtt{foo\_clear}, \mathtt{foo\_reset}$): manage state lifecycle during grouping.
+% \end{itemize}
 
-Each UDF receives input arguments via the \texttt{UDF\_ARGS} structure, which exposes parameter values and types through typed pointers. Output is returned through a caller-allocated buffer and must specify an explicit output length. All memory is managed manually, and no standard C++ types (e.g., \texttt{std::string}) may be used within the interface boundary.
+% Each UDF receives input arguments via the \texttt{UDF\_ARGS} structure, which exposes parameter values and types through typed pointers. Output is returned through a caller-allocated buffer and must specify an explicit output length. All memory is managed manually, and no standard C++ types (e.g., \texttt{std::string}) may be used within the interface boundary.
 
-This plugin model maps naturally to encrypted computation. The per-tuple stateless execution model aligns with ciphertext-level operations, while aggregate UDF hooks enable accumulation over encrypted records. Importantly, UDFs operate entirely inside the database engine, avoiding the need for external processes or client-managed cryptographic operations.
+% This plugin model maps naturally to encrypted computation. The per-tuple stateless execution model aligns with ciphertext-level operations, while aggregate UDF hooks enable accumulation over encrypted records. Importantly, UDFs operate entirely inside the database engine, avoiding the need for external processes or client-managed cryptographic operations.
 
-Hermes implements each homomorphic operation as a standalone UDF module, ensuring modularity and compatibility with SQL queries. Operations such as encryption, slot-wise insertion, and encrypted summation are exposed as standard SQL functions, compiled into dynamically loadable \texttt{.so} libraries. This design permits seamless integration with the MySQL query planner and execution engine, bridging encrypted computation with traditional relational workflows.
+% Hermes implements each homomorphic operation as a standalone UDF module, ensuring modularity and compatibility with SQL queries. Operations such as encryption, slot-wise insertion, and encrypted summation are exposed as standard SQL functions, compiled into dynamically loadable \texttt{.so} libraries. This design permits seamless integration with the MySQL query planner and execution engine, bridging encrypted computation with traditional relational workflows.
 
 \subsection{Terminology and Notation}
 \label{sec:prelim-notation}
@@ -895,37 +911,37 @@ Encryption shows a clear inverse relationship with group size: larger groups yie
 
 Insertion and deletion times, however, remain relatively flat across group sizes, varying only within a narrow band (approximately 3,400–3,450\,ms for inserts and 1,360–1,535\,ms for deletes). The lack of strong scaling in update operations is due to the fixed cost of rotation and masking within large ciphertexts. For instance, while packing reduces the number of ciphertexts to manage, larger slot vectors incur higher shift and noise overhead per update.
 
-\section{Related Work}
-\label{sec:related}
+% \section{Related Work}
+% \label{sec:related}
 
-\subsection{Fully Homomorphic Encryption}
+% \subsection{Fully Homomorphic Encryption}
 
-Homomorphic encryption (HE) enables computation over encrypted data without decryption. The seminal work by Gentry~\cite{gentry2009} introduced the first fully homomorphic encryption (FHE) scheme, laying the foundation for later constructions such as BFV~\cite{FV2012,brakerski2012}, BGV~\cite{BGV2014}, and CKKS~\cite{ckks2016}. These schemes have been implemented in libraries including SEAL~\cite{sealcrypto}, HElib~\cite{helib}, and OpenFHE~\cite{openfhe}. TFHE~\cite{torusCircuit} supports Boolean circuits and has seen recent improvements in bootstrapping performance~\cite{IEEETfhe,Guimares2024MOSFHETOS}.
+% Homomorphic encryption (HE) enables computation over encrypted data without decryption. The seminal work by Gentry~\cite{gentry2009} introduced the first fully homomorphic encryption (FHE) scheme, laying the foundation for later constructions such as BFV~\cite{FV2012,brakerski2012}, BGV~\cite{BGV2014}, and CKKS~\cite{ckks2016}. These schemes have been implemented in libraries including SEAL~\cite{sealcrypto}, HElib~\cite{helib}, and OpenFHE~\cite{openfhe}. TFHE~\cite{torusCircuit} supports Boolean circuits and has seen recent improvements in bootstrapping performance~\cite{IEEETfhe,Guimares2024MOSFHETOS}.
 
-Among these, CKKS is favored for approximate computation in machine learning~\cite{boemer2020mp2ml,han2023,imageclassification2}, whereas BFV and BGV are suited for exact arithmetic and strong security guarantees~\cite{Bossuat2021}. System-level optimizations, such as SIMD-style packing~\cite{blatt2020optimized} and backend accelerators~\cite{ccsTFHEAccelerator,iliashenko2021faster}, have significantly improved HE performance in practice.
+% Among these, CKKS is favored for approximate computation in machine learning~\cite{boemer2020mp2ml,han2023,imageclassification2}, whereas BFV and BGV are suited for exact arithmetic and strong security guarantees~\cite{Bossuat2021}. System-level optimizations, such as SIMD-style packing~\cite{blatt2020optimized} and backend accelerators~\cite{ccsTFHEAccelerator,iliashenko2021faster}, have significantly improved HE performance in practice.
 
-\textbf{Our work aligns with this direction by leveraging OpenFHE to support slot-based encryption inside a relational database engine.} Hermes focuses not on designing new HE schemes, but on integrating homomorphic encoding directly into SQL execution pipelines with minimal system intrusion.
+% \textbf{Our work aligns with this direction by leveraging OpenFHE to support slot-based encryption inside a relational database engine.} Hermes focuses not on designing new HE schemes, but on integrating homomorphic encoding directly into SQL execution pipelines with minimal system intrusion.
 
-\subsection{Encrypted Database Systems}
+% \subsection{Encrypted Database Systems}
 
-One major class of encrypted databases relies on client-side processing, where queries are executed after downloading encrypted data~\cite{akavia_sec23}. While this model minimizes trust assumptions, it sacrifices the benefits of server-side scalability and often incurs high bandwidth costs.
+% One major class of encrypted databases relies on client-side processing, where queries are executed after downloading encrypted data~\cite{akavia_sec23}. While this model minimizes trust assumptions, it sacrifices the benefits of server-side scalability and often incurs high bandwidth costs.
 
-An alternative approach is to split queries between client and server, as seen in information-hiding systems~\cite{hhaci_sigmod02}, where server-side filters retrieve encrypted tuples guided by secure indices. Systems like CryptDB~\cite{popa2011cryptdb}, Arx~\cite{arx_vldb19}, and Symmetria~\cite{symmetria_vldb20} explore different trade-offs between functionality and leakage, using layered encryption, partitioned encodings, or specialized circuits.
+% An alternative approach is to split queries between client and server, as seen in information-hiding systems~\cite{hhaci_sigmod02}, where server-side filters retrieve encrypted tuples guided by secure indices. Systems like CryptDB~\cite{popa2011cryptdb}, Arx~\cite{arx_vldb19}, and Symmetria~\cite{symmetria_vldb20} explore different trade-offs between functionality and leakage, using layered encryption, partitioned encodings, or specialized circuits.
 
-Homomorphic encryption has also been used directly in encrypted database systems, including Symmetria~\cite{symmetria_vldb20}, which uses multiplicative HE with additive extensions, and Rache~\cite{otawose_sigmod23}, which leverages layout-aware ciphertext placement and SIMD-optimized key switching. These systems often operate on scalar records and leave the ingestion process external to the system.
+% Homomorphic encryption has also been used directly in encrypted database systems, including Symmetria~\cite{symmetria_vldb20}, which uses multiplicative HE with additive extensions, and Rache~\cite{otawose_sigmod23}, which leverages layout-aware ciphertext placement and SIMD-optimized key switching. These systems often operate on scalar records and leave the ingestion process external to the system.
 
-\textbf{Hermes differs from prior systems by integrating homomorphic encryption directly into the ingestion path.} 
-Unlike approaches that rely on client-side ciphertext generation or immutable payload storage, Hermes exposes SQL-level UDFs for packing, encrypting, and mutating ciphertexts at runtime.
-Our system introduces a slot-aware data model that supports in-place ciphertext updates and maintains per-group local aggregates as part of the packing process. 
-These capabilities enable Hermes to achieve high ingestion throughput while preserving compatibility with relational operators and encrypted vector semantics.
+% \textbf{Hermes differs from prior systems by integrating homomorphic encryption directly into the ingestion path.} 
+% Unlike approaches that rely on client-side ciphertext generation or immutable payload storage, Hermes exposes SQL-level UDFs for packing, encrypting, and mutating ciphertexts at runtime.
+% Our system introduces a slot-aware data model that supports in-place ciphertext updates and maintains per-group local aggregates as part of the packing process. 
+% These capabilities enable Hermes to achieve high ingestion throughput while preserving compatibility with relational operators and encrypted vector semantics.
 
-\subsection{Vector Databases and Similarity Search}
+% % \subsection{Vector Databases and Similarity Search}
 
-Recent years have seen rapid development of both native and extended vector database systems. Native systems like Faiss~\cite{faiss}, Pinecone, and Chroma~\cite{chroma} optimize for pure vector workloads using compact index structures and approximate similarity operators. Mixed workload engines like Weaviate~\cite{weaviate}, Qdrant~\cite{qdrant}, and Vald~\cite{vald} support textual, categorical, and vector fields in tandem.
+% % Recent years have seen rapid development of both native and extended vector database systems. Native systems like Faiss~\cite{faiss}, Pinecone, and Chroma~\cite{chroma} optimize for pure vector workloads using compact index structures and approximate similarity operators. Mixed workload engines like Weaviate~\cite{weaviate}, Qdrant~\cite{qdrant}, and Vald~\cite{vald} support textual, categorical, and vector fields in tandem.
 
-Some full-stack systems extend relational engines with vector support. Pase~\cite{wyang_sigmod20} integrates quantization-aware indexing into PostgreSQL. AnalyticDB-V~\cite{cwei_vldb20} extends Alibaba’s analytic engine~\cite{czhan_vldb19} with embedding support. Apache Lucene~\cite{lucene}, originally a keyword search engine, now includes hierarchical graph indexes for fast $k$-NN search.
+% % Some full-stack systems extend relational engines with vector support. Pase~\cite{wyang_sigmod20} integrates quantization-aware indexing into PostgreSQL. AnalyticDB-V~\cite{cwei_vldb20} extends Alibaba’s analytic engine~\cite{czhan_vldb19} with embedding support. Apache Lucene~\cite{lucene}, originally a keyword search engine, now includes hierarchical graph indexes for fast $k$-NN search.
 
-\textbf{All these systems assume plaintext access to vectors during indexing and query execution.} In contrast, Hermes supports encrypted ingestion and runtime packing, enabling similarity-preserving computation without decrypting vectors. Our UDF-based design allows MySQL users to benefit from homomorphic encryption with no query rewriting or external proxy.
+% % \textbf{All these systems assume plaintext access to vectors during indexing and query execution.} In contrast, Hermes supports encrypted ingestion and runtime packing, enabling similarity-preserving computation without decrypting vectors. Our UDF-based design allows MySQL users to benefit from homomorphic encryption with no query rewriting or external proxy.
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
