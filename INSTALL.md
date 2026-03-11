@@ -1,10 +1,12 @@
-# Update on Mar 10, 2026 (on Chameleon Cloud TACC)
+# Update on Mar 11, 2026 (on Chameleon Cloud TACC & CloudLab Wisconsin)
 From now on, all repositories will be installed on ~/hpdic/ instead of ~/, to avoid cluttering the home directory. So the installation path of Hermes will be ~/hpdic/Hermes/. The installation steps are the same as before, just replace ~/Hermes with ~/hpdic/Hermes.
 
 ## Update Systems
 ```bash
 sudo apt update
-sudo apt install -y btop cmake 
+sudo apt install -y btop cmake zlib1g-dev texlive-full
+git config --global user.name "Dongfang Zhao"
+git config --global user.email "dzhao@uw.edu"
 ```
 
 ## Install OpenFHE
@@ -29,10 +31,9 @@ sudo make install
 
 ## Install MySQL
 ```bash
-sudo apt install mysql-server -y
-sudo apt install libmysqlclient-dev -y
+sudo apt install mysql-server libmysqlclient-dev -y
 sudo mysql_secure_installation
-# Answer the interactive questions above
+# Answer the interactive questions above (just enter for all of them)
 ```
 
 ## Install Hermes
@@ -74,9 +75,10 @@ cd ~/hpdic/Hermes
 
 Example output:
 ```bash
-cc@tacc:~/hpdic/Hermes$ cd ~/hpdic/Hermes
+donzhao@node0:~/hpdic/Hermes$ cd ~/hpdic/Hermes
 ./scripts/run_crypto.sh
 ./scripts/run_singular.sh
+./scripts/run_pack.sh
 [*] Running crypto module unit tests...
 
 [+] Running test_eval...
@@ -139,9 +141,8 @@ Carol   72000
 Dave    70800
 
 [✓] Test completed successfully.
-cc@tacc:~/hpdic/Hermes$ ./scripts/run_pack.sh
 
-[HERMES-TEST] === NEW HERMES PACK TEST @ 2026-03-11 05:56:55 ===
+[HERMES-TEST] === NEW HERMES PACK TEST @ 2026-03-11 14:49:26 ===
 [+] Created table 'employees'.
 [+] Inserted sample employee records.
 [*] Packing salaries per department...
@@ -189,7 +190,7 @@ cc@tacc:~/hpdic/Hermes$ ./scripts/run_pack.sh
 +------+------------+----------------+-------------+
 |    1 |          3 | 1000,9999,1500 | 12499       |
 +------+------------+----------------+-------------+
-cc@tacc:~/hpdic/Hermes$ 
+donzhao@node0:~/hpdic/Hermes$ 
 ```
 
 # Update on 1/18/2026, for Chameleon Cloud
