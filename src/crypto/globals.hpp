@@ -10,9 +10,9 @@
  * WARNING: Hardcoded paths are insecure and should not be used in
  * production deployments without appropriate access control.
  *
- * Author: Dongfang Zhao (dzhao@cs.washington.edu)
+ * Author: Dongfang Zhao (dzhao@uw.edu)
  * Institution: University of Washington
- * Last Updated: June 1, 2025
+ * Last Updated: March 10, 2026
  */
 
 #pragma once
