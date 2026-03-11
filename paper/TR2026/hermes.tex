@@ -1,5 +1,5 @@
-% \documentclass[sigconf,review,anonymous]{acmart}
-\documentclass[sigconf,nonacm]{acmart}
+\documentclass[sigconf,review,anonymous]{acmart}
+% \documentclass[sigconf,nonacm]{acmart}
 
 
 % Title portion
@@ -85,51 +85,41 @@ Fully Homomorphic Encryption (FHE) promises the ability to compute over encrypte
 \section{Introduction}
 
 \subsection{Background and Motivation}
-\don{TODO}
-For over four decades, database systems have formed the backbone of modern data infrastructure, enabling structured storage, efficient retrieval, and scalable analytics. As the industry has transitioned to cloud-first architectures, the confidentiality of outsourced data has become a central concern. Increasingly, users demand end-to-end cryptographic protection: not merely during transmission or at rest, but throughout the entire computation pipeline.
 
-Among all cryptographic primitives, Fully Homomorphic Encryption (FHE) stands out for its conceptual power: it allows algebraic operations on encrypted data, thereby eliminating the need to trust the compute server. Since Gentry’s seminal construction~\cite{gentry2009}, subsequent schemes such as BFV and CKKS~\cite{FV2012,ckks2016} have made dramatic advances in efficiency, expressiveness, and implementation maturity~\cite{openfhe}. Today, FHE is no longer a theoretical curiosity; it underpins practical tools in secure machine learning and privacy-preserving analytics~\cite{boemer2020mp2ml,han2023}.
+For over four decades, database systems have formed the backbone of modern data infrastructure, enabling structured storage, efficient retrieval, and scalable analytics. As the industry has transitioned to cloud-first architectures, the confidentiality of outsourced data has become a central concern. Increasingly, users demand end-to-end cryptographic protection throughout the entire computation pipeline, rather than merely during transmission or at rest.
+Among cryptographic primitives, Fully Homomorphic Encryption (FHE) offers a mechanism to evaluate algebraic operations directly on encrypted data, removing the requirement to trust the compute server. Following Gentry's seminal construction~\cite{gentry2009}, subsequent schemes such as BFV and CKKS~\cite{FV2012,ckks2016} have improved computational efficiency and implementation maturity~\cite{openfhe}. FHE is now applied in practical domains, including secure machine learning and privacy-preserving analytics~\cite{boemer2020mp2ml,han2023}.
 
-And yet, one foundational system remains conspicuously absent from this evolution: Databases. 
-Despite decades of research on encrypted databases~\cite{popa2011cryptdb,arx_vldb19}, all practical systems either leak access patterns through auxiliary indexing or offload all computation to the client. The longstanding vision of a relational engine that operates directly on semantically secure ciphertexts remains, as of today, unrealized.
-This disconnect is not for lack of demand or cryptographic capability, but arises from a deeper structural asymmetry: the absence of a principled interface between database semantics and homomorphic computation. Traditional DBMSs operate over mutable records, evolving schemas, and runtime query plans. FHE schemes, by contrast, operate over static circuits and immutable ciphertexts. 
+However, relational database systems have yet to fully integrate native homomorphic encryption. Although extensive research exists on encrypted databases~\cite{otawose_sigmod23,popa2011cryptdb,arx_vldb19}, current practical systems frequently leak access patterns through auxiliary indices or transfer the computational workload back to the client. Operating a relational engine directly on semantically secure ciphertexts remains an open challenge.
+This limitation stems from a structural mismatch between database semantics and homomorphic computation. Traditional database management systems are designed for mutable records, evolving schemas, and runtime query execution plans. In contrast, FHE schemes operate over static circuits and immutable ciphertexts.
+Resolving this structural divide requires more than wrapping FHE function calls within SQL. It necessitates a system architecture that maps the operational dynamics of relational execution to the algebraic invariants of encrypted computation. Without bridging these abstractions, applying cryptographic schemes to secure query processing remains impractical.
 
-Bridging this divide requires more than encrypting inputs or wrapping FHE inside SQL. It demands a new class of system architecture that reconciles the structural invariants of encrypted computation with the operational dynamics of relational execution. Without such an alignment, even the most powerful cryptographic schemes remain impractical for secure query processing.
-
-As we stand at the convergence of deployable FHE toolchains and rising expectations for secure cloud analytics, the foundational question is no longer \emph{whether} relational database systems should support native homomorphic execution, but \emph{how}, and with what interface. This work, thus, is a principled step toward answering that question.
+Given the availability of deployable FHE toolchains and the rising expectation for secure cloud analytics, the focus of system design is determining how relational databases can integrate homomorphic execution through a native interface. This work presents a principled step toward answering that question.
 
 \subsection{Proposed Work}
 
-We present \textbf{Hermes}, a database system that enables secure and efficient vectorized query execution over homomorphically encrypted data. Built atop the multi-slot capabilities of modern FHE schemes, Hermes is implemented as a suite of native MySQL loadable functions interfacing with OpenFHE. It addresses both algorithmic and systems-level challenges that arise when adapting FHE to relational query processing. The system contributes the following core components:
+We present \emph{Hermes}, a database subsystem that enables secure and efficient vectorized relational query execution over homomorphically encrypted data. Built atop the multi-slot capabilities of modern FHE schemes, Hermes is implemented as a suite of native MySQL loadable functions interfacing with OpenFHE~\cite{openfhe}. It addresses the structural mismatch between mutable relational records and static ciphertexts by contributing three core components:
 
-\paragraph{(1) Vectorized Ciphertext Encoding.}
-Hermes adopts a packed representation in which each ciphertext encodes a fixed-length array of attribute values, corresponding to multiple database tuples. This SIMD-style layout amortizes encryption overhead and enables batch homomorphic operations. Unlike conventional per-tuple encryption, whose cost grows linearly with table size, Hermes aligns computational complexity with the number of ciphertexts, improving both throughput and storage efficiency.
+\paragraph{(1) SIMD-aware Relational Data Model.}
+Hermes adopts a packed ciphertext representation that maps multiple database tuples into parallel homomorphic slots. To accelerate homomorphic aggregation, the system reserves a specific slot within each ciphertext to store a precomputed auxiliary local sum over the data slots. This value is computed at packing time and maintained incrementally. By embedding this analytic state directly into the physical layout, encrypted aggregation queries such as \texttt{SUM} can be answered using constant-time ciphertext additions rather than expensive Galois rotations. This layout amortizes encryption overhead and improves both throughput and storage efficiency.
 
-\paragraph{(2) Auxiliary Sum Embedding for Aggregation.}
-To accelerate homomorphic aggregation, Hermes reserves the final slot of each ciphertext to store a \emph{local sum}—a precomputed additive statistic over the remaining slots. This value is computed at packing time and incrementally updated upon insertion and deletion. As a result, encrypted aggregation queries (e.g., \texttt{SUM}, \texttt{GROUP BY}) can be answered without invoking Galois rotations or slot-wise scan circuits. Rotations are used only in rare structural updates (e.g., middle-slot deletion).
+\paragraph{(2) Data-Oblivious Mutability Primitives.}
+To overcome ciphertext immutability, Hermes supports dynamic record-level modifications directly on packed ciphertexts. Insertions and deletions are executed via homomorphic shift-and-mask operations. Inserting a new record shifts a tail segment rightward, while deleting a record shifts the segment leftward to clear the target slot. These structural updates are performed using homomorphic masking and slot-wise addition without requiring decryption or plaintext recovery. Such operations preserve semantic security and enable efficient in-place mutability while keeping the database access patterns completely opaque to the server.
 
-\paragraph{(3) Slot-Level Updates via Encrypted Shift Operations.}
-Hermes supports dynamic record-level updates directly on packed ciphertexts. Insertions shift a tail segment rightward to insert a new value; deletions shift leftward and clear the trailing slot. Both operations are implemented using homomorphic masking and slot-wise addition, allowing structural updates without re-encryption or plaintext recovery. These operations preserve semantic security and enable efficient encrypted mutability.
+\paragraph{(3) FHE-Native Query Engine Integration.}
+Hermes facilitates a full-stack encrypted query execution pipeline without modifying the core MySQL engine or query planner. The system is realized as a collection of C++ modules compiled against OpenFHE and registered via the MySQL user-defined function interface. During ingestion, records are packed into ciphertexts with embedded auxiliary sums and stored as string-encoded blobs. At query time, the system executes relational operators entirely within the encrypted domain. This architecture avoids client-side orchestration and minimizes ciphertext transformations, delivering a performant and secure relational execution engine natively within the database management system.
 
-\paragraph{(4) Non-Intrusive Integration with MySQL.}
-Hermes is realized as a set of C++ plugins compiled against OpenFHE v1.2.4 and registered through the MySQL UDF mechanism. The system requires no changes to the MySQL engine or query planner. Ciphertexts are stored as string-encoded blobs (e.g., base64), and all encryption contexts and key material are globally initialized. The codebase comprises over 2,000 lines of cryptographic logic, supported by shell and Python scripts for deployment and automation.
-
-\paragraph{(5) Encrypted Query Execution Pipeline.}
-Hermes supports full-stack encrypted query execution for common aggregate patterns. During ingestion, records are packed into ciphertexts with embedded auxiliary sums. At query time, ciphertexts are aggregated via homomorphic addition, and the result is decrypted in a single step. This design minimizes ciphertext transformations and avoids client-side orchestration, enabling secure and performant query execution entirely within the database engine.
-
-\subsection{Contributions}
-This paper makes the following contributions:
+In Summary, this paper makes the following contributions:
 
 \begin{itemize}
-    \item \textit{SIMD-aware relational data model with embedded analytics.} We propose a vectorized data model where each homomorphic ciphertext stores multiple database tuples in parallel slots. By reserving a specific slot for a precomputed auxiliary local sum, this model supports efficient encrypted aggregation without the costly Galois rotations. As a result, this new data model amortizes encryption overhead and reduces per-tuple processing cost.
+    \item We formalize a vectorized ciphertext encoding that embeds precomputed aggregate statistics, reducing homomorphic aggregation from costly Galois rotations to constant-time additions and amortizing overall encryption overhead.
 
-    \item \textit{Data oblivious mutability primitives.} We design homomorphic primitives for slot-level insertion and deletion using encrypted shift and mask operations. These primitives allow structural updates to packed ciphertexts without decryption or full reencryption, supporting secure and dynamic record-level mutability.
+    \item We develop homomorphic shift-and-mask algorithms to achieve in-place slot-level insertions and deletions, enabling dynamic record mutability while preserving strict semantic security.
 
-    \item \textit{FHE-native query engine integration.} We implement the above data model and primitives in a system prototype, namely Hermes, as a collection of C++ loadable functions interfacing OpenFHE with MySQL UDF. The system executes homomorphically encrypted exectuion pipelines inside the DBMS without external interaction.
+    \item We implement Hermes as a native MySQL extension to execute homomorphic query pipelines entirely within the DBMS. Extensive evaluations demonstrate up to 1,600x higher encryption throughput and 30x insertion speedup compared to conventional FHE implementations.
 \end{itemize}
 
 \section{Preliminaries}
-
+\don{TODO}
 \subsection{Homomorphic Encryption Background}
 \label{sec:prelim-he}
 
