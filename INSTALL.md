@@ -1,5 +1,5 @@
 # Update on Mar 10, 2026 (on Chameleon Cloud TACC)
-From now on, all repositories will be installed on ~/hpdic/ instead of ~/, to avoid cluttering the home directory. So the installation path of Hermes will be ~/hpdic/hermes/. The installation steps are the same as before, just replace ~/hermes with ~/hpdic/hermes.
+From now on, all repositories will be installed on ~/hpdic/ instead of ~/, to avoid cluttering the home directory. So the installation path of Hermes will be ~/hpdic/Hermes/. The installation steps are the same as before, just replace ~/Hermes with ~/hpdic/Hermes.
 
 ## Update Systems
 ```bash
