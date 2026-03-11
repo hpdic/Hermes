@@ -1,3 +1,197 @@
+# Update on Mar 10, 2026 (on Chameleon Cloud TACC)
+From now on, all repositories will be installed on ~/hpdic/ instead of ~/, to avoid cluttering the home directory. So the installation path of Hermes will be ~/hpdic/hermes/. The installation steps are the same as before, just replace ~/hermes with ~/hpdic/hermes.
+
+## Update Systems
+```bash
+sudo apt update
+sudo apt install -y btop cmake 
+```
+
+## Install OpenFHE
+```bash
+cd ~/hpdic
+git clone https://github.com/hpdic/cnpy.git
+cd ~/hpdic/cnpy
+mkdir build && cd build
+cmake ..
+make -j
+sudo make install
+
+cd ~/hpdic
+git clone git@github.com:hpdic/openfhe-development.git
+cd ~/hpdic/openfhe-development
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG="-g -O0" -DBUILD_UNITTESTS=OFF ..
+make -j
+sudo make install
+~/hpdic/openfhe-development/build/bin/examples/pke/simple-integers
+```
+
+## Install MySQL
+```bash
+sudo apt install mysql-server -y
+sudo apt install libmysqlclient-dev -y
+sudo mysql_secure_installation
+# Answer the interactive questions above
+```
+
+## Install Hermes
+```bash
+cd ~/hpdic
+git clone git@github.com:hpdic/Hermes.git
+cd ~/hpdic/Hermes
+bash ./scripts/setup_mysql.sh
+# Press Enter to confirm the account creations
+
+sudo EDITOR=vim systemctl edit mysql
+# Add the following two lines to the above file (allowing MySQL to access external libs):
+# [Service]
+# Environment="LD_LIBRARY_PATH=/usr/lib/mysql/plugin:$LD_LIBRARY_PATH"
+
+sudo systemctl daemon-reload
+sudo systemctl restart mysql
+sudo cp ~/hpdic/openfhe-development/build/lib/libOPENFHE* /usr/lib/mysql/plugin/.
+cd ~/hpdic/Hermes
+bash ./scripts/build.sh
+
+sudo vim /etc/apparmor.d/usr.sbin.mysqld
+# To allow MySQL to access the keys in the temp directory,
+# add the following two lines at the end of the file (before "}"):
+# /tmp/Hermes/ r,
+# /tmp/Hermes/* r,
+
+sudo apparmor_parser -r /etc/apparmor.d/usr.sbin.mysqld
+sudo systemctl restart mysql
+```
+
+## Quick Test
+```bash
+cd ~/hpdic/Hermes
+./scripts/run_crypto.sh
+./scripts/run_singular.sh
+./scripts/run_pack.sh
+```
+
+Example output:
+```bash
+cc@tacc:~/hpdic/Hermes$ cd ~/hpdic/Hermes
+./scripts/run_crypto.sh
+./scripts/run_singular.sh
+[*] Running crypto module unit tests...
+
+[+] Running test_eval...
+[test_eval] Initializing BFV context...
+[test_eval] Encrypting a = 7, b = 5
+[test_eval] a + b = 12
+[test_eval] a * b = 35
+[test_eval] a + 3 = 10
+[test_eval] b * 4 = 20
+[✓] All evaluation tests passed.
+
+[+] Running test_serialize...
+[1] Context and keys generated.
+    > Wrote 394125 bytes to tmp/publicKey.txt
+    > Wrote 197390 bytes to tmp/secretKey.txt
+[2] Keys serialized.
+[3] Encrypting plaintext: 100
+    > Wrote 394169 bytes to tmp/ciphertext.txt
+[3] Ciphertext serialized.
+    > Read 394125 bytes from tmp/publicKey.txt
+    > Read 197390 bytes from tmp/secretKey.txt
+    > Read 394169 bytes from tmp/ciphertext.txt
+[4] Context and keys deserialized.
+[5] Decrypted plaintext: 100
+[✓] Ciphertext roundtrip test passed.
+
+[✓] All crypto unit tests passed.
+[*] Running encrypted SQL tests...
+
+[1] Setting up test database and base employee table...
+
+[2] Encrypting salary values using HERMES_ENC_SINGULAR_BFV...
+
+[3] Previewing ciphertext prefix (first 8 chars)...
+id      name    department      salary_enc_preview
+1       Alice   HR      AQAAAEAB
+2       Bob     HR      AQAAAEAB
+3       Carol   ENG     AQAAAEAB
+4       Dave    ENG     AQAAAEAB
+
+[4] Decrypting encrypted salaries using HERMES_DEC_SINGULAR_BFV...
+id      name    department      salary_plain
+1       Alice   HR      5200
+2       Bob     HR      4800
+3       Carol   ENG     6000
+4       Dave    ENG     5900
+
+[5] Performing homomorphic sum by department using HERMES_SUM_BFV...
+department      total_salary
+ENG     11900
+HR      10000
+
+[6] Adding encrypted months column (12 months/year)...
+
+[7] Computing annual salary = salary × months (homomorphic mul)...
+name    annual_salary
+Alice   62400
+Bob     57600
+Carol   72000
+Dave    70800
+
+[✓] Test completed successfully.
+cc@tacc:~/hpdic/Hermes$ ./scripts/run_pack.sh
+
+[HERMES-TEST] === NEW HERMES PACK TEST @ 2026-03-11 05:56:55 ===
+[+] Created table 'employees'.
+[+] Inserted sample employee records.
+[*] Packing salaries per department...
++------+-------------------+
+| dept | encrypted_preview |
++------+-------------------+
+|    1 | 41514141          |
+|    2 | 41514141          |
++------+-------------------+
+[+] Inserted packed ciphertexts into 'packed_salaries' with slot counts.
+[*] Decrypting packed ciphertexts...
++------+------------+----------------+
+| dept | slot_count | salary_vector  |
++------+------------+----------------+
+|    1 |          3 | 1000,2000,1500 |
+|    2 |          2 | 3000,2500      |
++------+------------+----------------+
+[*] Adding 'local_sum_ct' column to packed_salaries...
+[*] Computing and storing encrypted local sum for each group...
+[+] Encrypted local sums written into 'packed_salaries.local_sum_ct'.
+[*] Decrypting local group sums...
++------+------------+----------------+-----------+
+| dept | slot_count | salary_vector  | local_sum |
++------+------------+----------------+-----------+
+|    1 |          3 | 1000,2000,1500 | 4500      |
+|    2 |          2 | 3000,2500      | 5500      |
++------+------------+----------------+-----------+
+[*] Computing global sum (homomorphic sum of local group sums)...
+[+] Computed global ciphertext sum.
+[*] Decrypting global sum...
++------------+
+| global_sum |
++------------+
+| 10000      |
++------------+
+[*] Testing HERMES_PACK_ADD ...
++------+------------+---------------------+-------------+
+| dept | slot_count | updated_vector      | updated_sum |
++------+------------+---------------------+-------------+
+|    1 |          4 | 1000,2000,1500,9999 | 14499       |
++------+------------+---------------------+-------------+
+[*] Testing HERMES_PACK_RMV ...
++------+------------+----------------+-------------+
+| dept | slot_count | updated_vector | updated_sum |
++------+------------+----------------+-------------+
+|    1 |          3 | 1000,9999,1500 | 12499       |
++------+------------+----------------+-------------+
+cc@tacc:~/hpdic/Hermes$ 
+```
+
 # Update on 1/18/2026, for Chameleon Cloud
 
 ## Install OpenFHE

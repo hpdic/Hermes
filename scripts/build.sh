@@ -65,7 +65,7 @@ set -e
 export MYSQL_PWD="hpdic2023"
 MYSQL_USER="hpdic"
 
-PROJECT_ROOT="$HOME/Hermes" 
+PROJECT_ROOT="$HOME/hpdic/Hermes" 
 
 BUILD_DIR="${PROJECT_ROOT}/build"
 BUILD_OPENFHE="${PROJECT_ROOT}/../openfhe-development/build"
@@ -137,7 +137,7 @@ echo "[✓] All plugins built and UDFs registered successfully."
 # for gen_keys to dump the public/secret keys.
 # We explicitly reset ownership to current user to avoid MySQL permission issues.
 # ============================================================
-KEY_DIR="/tmp/hermes"
+KEY_DIR="/tmp/Hermes"
 if [ -d "$KEY_DIR" ]; then
   echo "[*] Cleaning up existing $KEY_DIR ..."
   sudo rm -rf "$KEY_DIR"
@@ -148,5 +148,5 @@ mkdir -p "$KEY_DIR"
 chmod 755 "$KEY_DIR"
 chown "$(whoami):$(id -g -n)" "$KEY_DIR"
 
-echo "[*] Generating default BFV keypair to /tmp/hermes ..."
+echo "[*] Generating default BFV keypair to /tmp/Hermes ..."
 "$BUILD_DIR/gen_keys"
