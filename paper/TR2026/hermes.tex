@@ -550,33 +550,31 @@ As of March 2026, the codebase comprises 3,518 lines of code: including 2,045 li
 % \]
 Experiments and development were partially supported by the NSF-funded Chameleon Cloud infrastructure~\cite{chameleoncloud}.
 
-\subsection{Architecture and Integration with MySQL}
+\subsection{Architecture and Integration}
 
-\don{TODO}
 Hermes is implemented as a runtime plugin using the MySQL User-Defined Function (UDF) interface. Each cryptographic operation is compiled as a C++ function into a shared object \texttt{.so} file, which is dynamically linked into the MySQL server process at runtime. This mechanism preserves full compatibility with unmodified MySQL 8.x deployments, requiring no server-side modifications or query proxies.
 
-Each plugin function adheres to the MySQL UDF lifecycle. The \texttt{\_init} function validates argument count and type, and initializes internal state if necessary. The core logic resides in \texttt{\_func}, which executes per-row during SQL evaluation. The optional \texttt{\_deinit} function releases any memory or handles. Hermes uses this interface to expose cryptographic primitives including ciphertext packing, secure insertion and deletion, encrypted aggregation, and packed decryption.
+Each plugin function adheres to the MySQL UDF lifecycle. The \texttt{\_init} function validates argument count and type, and initializes internal state if necessary. The core logic resides in \texttt{\_func}, which executes per-row during the query evaluation. The optional \texttt{\_deinit} function releases any memory or handles. Hermes uses this interface to expose cryptographic primitives including ciphertext packing, secure insertion and deletion, encrypted aggregation, and packed decryption.
 
-To ensure compatibility between SQL types and OpenFHE plaintexts, all inputs are explicitly parsed within the plugin. MySQL UDF arguments arrive as raw C pointers and type tags (e.g., \texttt{INT\_RESULT}, \texttt{STRING\_RESULT}). Hermes implements strict parsing logic to convert these inputs into 64-bit signed integers, using \texttt{std::istringstream} when necessary. Each scalar value \( v \in \mathbb{Z} \) is then embedded into a plaintext vector \( \mathbf{m} \in \mathbb{Z}_t^n \), using OpenFHE's \texttt{MakePackedPlaintext} API with a fixed slot layout.
+In order to ensure compatibility between MySQL data types and OpenFHE plaintexts, all inputs are explicitly parsed within the plugin. MySQL UDF arguments arrive as raw C pointers and type tags, for example, \texttt{INT\_RESULT} and \texttt{STRING\_RESULT}. Hermes implements strict parsing logic to convert these inputs into 64-bit signed integers, using \texttt{std::istringstream} when necessary. Each scalar value \( v \in \mathbb{Z} \) is then embedded into a plaintext vector \( \mathbf{m} \in \mathbb{Z}_t^n \), using OpenFHE's \texttt{MakePackedPlaintext} API with a fixed slot layout.
 
 Hermes adopts a ring dimension \( N \), yielding \( n = N / 2 \) usable slots in the BFV batching scheme. One slot (typically slot \( n - 1 \)) is reserved for auxiliary metadata such as the local sum. All remaining \( n - 1 \) slots are used to store plaintext values. This layout is encoded during packing and preserved during ciphertext mutation. Plugin-side logic ensures that no slot is overwritten inadvertently, and runtime bounds checking is enforced.
 
 The encryption and decryption routines are invoked entirely within the MySQL server process. Ciphertext objects are stored in memory for the duration of the query and are not serialized unless explicitly requested. For diagnostic purposes, Hermes returns string-encoded ciphertext metadata of the form:
 \[
-\texttt{"0xADDR (v, size=s)"}
+\texttt{"0xADDR (v, size=s)"},
 \]
 where \texttt{ADDR} is the memory address of the ciphertext, \( v \in \mathbb{Z} \) is the decrypted payload, and \( s \) is the object size in bytes. This format is used for interactive debugging and was critical during early plugin validation.
 
 To integrate OpenFHE v1.2.4, Hermes statically compiles the BFV module and its dependencies into a relocatable shared object. At runtime, shared libraries such as \texttt{libOPENFHEcore.so} are copied into MySQL's plugin directory and made visible to \texttt{mysqld} via an injected \texttt{LD\_LIBRARY\_PATH} set in a \texttt{systemd} override file. This guarantees correct dynamic linking on Ubuntu 24.04 LTS and avoids linker errors from unresolved symbols.
 
-All plugin code is written in C++17, built via CMake with full support for debug symbols and module-wise compilation. To comply with MySQL plugin constraints, all external symbols are wrapped in \texttt{extern "C"} linkage and use plain pointer-based memory semantics. No exceptions are allowed across the FFI boundary. Hermes writes all diagnostic logs to \texttt{stderr}, which are forwarded into the MySQL error log at \texttt{/var/log/mysql/error.log} for offline inspection.
+All plugin code is written in C++17, built via CMake with full support for debug symbols and module-wise compilation. To comply with MySQL plugin constraints, all external symbols are wrapped in \texttt{extern ``C''} linkage and use plain pointer-based memory semantics. No exceptions are allowed across the FFI boundary. Hermes writes all diagnostic logs to \texttt{stderr}, which are forwarded into the MySQL error log at \texttt{/var/log/mysql/error.log} for offline inspection.
 
-\subsection{Context and Key Management in OpenFHE}
+\subsection{Context and Key Management}
 
 Hermes relies on the BFV scheme as implemented in OpenFHE v1.2.4. To ensure correct and consistent behavior across all plugin functions, we construct a single shared encryption context that is initialized at plugin load time and reused throughout the query lifecycle. This context is created using OpenFHE’s \texttt{GenCryptoContext} API, parameterized with a plaintext modulus \( t \), ring dimension \( N \), and multiplicative depth \( d \). In our implementation, we set \( t = 65537 \), \( N = 2^{14} \), and \( d = 2 \), which balances noise growth and packing efficiency.
 
 The encryption context \( \mathcal{C} \) defines the underlying polynomial ring \( R = \mathbb{Z}_q[x]/(x^N + 1) \), as well as the modulus chain \( q = q_1 \cdot q_2 \cdots q_L \) used for leveled homomorphic operations. Once \( \mathcal{C} \) is created, we enable the following scheme features:
-
 \begin{itemize}
   \item Public key encryption (PKE) for basic encryption and decryption;
   \item Leveled SHE for both plaintext-ciphertext and ciphertext-ciphertext arithmetic;
@@ -584,7 +582,6 @@ The encryption context \( \mathcal{C} \) defines the underlying polynomial ring 
 \end{itemize}
 
 Key generation is performed once at startup using \texttt{KeyGen()}, yielding a public key \( pk \) and a secret key \( sk \). We also generate auxiliary keys:
-
 \begin{itemize}
   \item Relinearization keys \( \texttt{EvalMultKeyGen}(sk) \) for ciphertext size reduction;
   \item Rotation keys \( \texttt{EvalSumKeyGen}(sk) \) and \( \texttt{EvalAtIndex}(sk, i) \) for slot manipulation.
@@ -594,14 +591,12 @@ To prevent accidental key regeneration or state corruption across plugin invocat
 
 In addition to functional keys, Hermes supports a default plaintext packing policy where a vector \( \mathbf{v} = (v_0, v_1, \dots, v_{n-2}) \) is padded with an auxiliary local sum \( v_{n-1} = \sum_{i=0}^{n-2} v_i \). This logic is executed at plaintext construction time and preserved across all homomorphic operations.
 
-By centralizing context and key management, Hermes simplifies plugin logic and ensures cross-function compatibility. All encryption and decryption are performed using the same parameter set, eliminating the risk of parameter mismatch or ciphertext incompatibility. This design is particularly important in the MySQL UDF context, where each query invokes the plugin in isolation and lacks stateful session memory.
+\subsection{Ciphertext Format and Memory Layout}
 
-\subsection{Packed Ciphertext Format and Memory Layout}
-
+\don{TODO}
 Hermes adopts a packing model based on the batching technique available in BFV, which maps plaintext vectors into the ring \( R_t = \mathbb{Z}_t[x]/(x^N + 1) \) via the Chinese Remainder Theorem (CRT). For a ring dimension \( N \), this results in \( n = N/2 \) usable plaintext slots, each of which can store an individual integer mod \( t \). 
 
 Each ciphertext in Hermes is treated as a structured container with fixed semantic fields:
-
 \begin{itemize}
   \item Slots \( [0, \dots, n{-}2] \): store plaintext database records (e.g., salary values).
   \item Slot \( n{-}1 \): reserved for auxiliary metadata (e.g., local sum).
@@ -610,7 +605,6 @@ Each ciphertext in Hermes is treated as a structured container with fixed semant
 This layout enforces slot-position invariants critical for query semantics. For example, slot \( i \) always corresponds to the \( i \)-th tuple in a logical group. When a slot is modified, its relative position remains unchanged; thus, operations such as \texttt{INSERT} and \texttt{DELETE} preserve the integrity of the ciphertext as a vector block.
 
 To ensure predictable memory usage and interoperation with MySQL, each ciphertext object is allocated on the heap and remains opaque to MySQL. Rather than serializing ciphertexts into strings or blobs, Hermes returns a debug string containing:
-
 \begin{itemize}
   \item The memory address of the ciphertext (as a hexadecimal pointer).
   \item A plaintext verification value (via local decryption).
