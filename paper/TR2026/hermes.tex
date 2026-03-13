@@ -690,8 +690,6 @@ A particularly subtle issue involves the generation and use of Galois keys for s
 \subsection{Experimental Setup}
 \label{sec:datasets}
 
-\don{TODO}
-We evaluate Hermes on three public datasets covering health, genomic, and financial records.
 All experiments are conducted on a standard Linux server with the following configuration:
 \begin{itemize}
   \item \textbf{CPU:} Intel Xeon Silver 4310 @ 2.10GHz, 64 cores
@@ -700,18 +698,15 @@ All experiments are conducted on a standard Linux server with the following conf
   \item \textbf{MySQL:} v8.0.42
   \item \textbf{OpenFHE:} v1.2.4 with BFV scheme
 \end{itemize}
-Hermes uses a default ring dimension of $N = 2^{14}$ and plaintext modulus $t = 2^{16}$, resulting in $n = 8192$ plaintext slots per ciphertext.
+Our evaluation uses a default ring dimension of $N = 2^{14}$ and plaintext modulus $t = 2^{16}$, resulting in $n = 8192$ plaintext slots per ciphertext.
 
-We evaluate Hermes on three real-world datasets that represent diverse application domains and data distributions, summarized in Table~\ref{tab:datasets}. The \textbf{COVID-19} dataset contains 341 daily records of pandemic-related statistics in the U.S., such as hospitalizations and case counts. The \textbf{hg38} dataset corresponds to genomic annotations in the human reference genome, consisting of over 34,000 entries such as transcription start sites and exon counts. The \textbf{Bitcoin} dataset records cryptocurrency trade volumes on a 3-day interval from 2013 to 2022. Since raw Bitcoin trade values are extremely large, we apply a rescaling factor of $1/24$ to obtain minute-level approximations before encryption.
-
-All datasets are stored as single-attribute tables in a MySQL database. Hermes operates over these tables using only SQL-based UDFs, without modifying schema definitions or client-side logic. We use a packing size of 8192 slots throughout all experiments, and all queries are executed on a single-node MySQL server with OpenFHE v1.2.4.
 
 % Optional table with datasets
-\begin{table}[ht]
+\begin{table}[!t]
 \centering
 \caption{Summary of evaluation datasets}
 \label{tab:datasets}
-\begin{tabular}{lrrr}
+\begin{tabular}{lccr}
 \toprule
 \textbf{Dataset} & \textbf{Domain} & \textbf{\#Tuples} & \textbf{Value Range} \\
 \midrule
@@ -722,8 +717,12 @@ Bitcoin~\cite{bitcoin_trade}  & Finance    & 1,086 & $\sim$[0, $2^{31}$] \\
 \end{tabular}
 \end{table}
 
+We evaluate Hermes on three real-world datasets that represent diverse application domains and data distributions, summarized in Table~\ref{tab:datasets}. The \textbf{COVID-19} dataset contains 341 daily records of pandemic-related statistics in the U.S., such as hospitalizations and case counts. The \textbf{hg38} dataset corresponds to genomic annotations in the human reference genome, consisting of over 34,000 entries such as transcription start sites and exon counts. The \textbf{Bitcoin} dataset records cryptocurrency trade volumes on a 3-day interval from 2013 to 2022. Since raw Bitcoin trade values are extremely large, we apply a rescaling factor of $1/24$ to obtain minute-level approximations before encryption.
+All datasets are stored as single-attribute tables in a MySQL database. Hermes operates over these tables using only SQL-based UDFs, without modifying schema definitions or client-side logic. We use a packing size of 8192 slots throughout all experiments, and all queries are executed on a single-node MySQL server with OpenFHE v1.2.4.
+
 \subsection{Encryption Throughput}
 
+\don{TODO}
 We begin by evaluating the cost of converting plaintext tuples into homomorphically encrypted representations. This loading step is typically the most expensive preprocessing phase and dominates the storage pipeline in encrypted database systems.
 
 Table~\ref{tab:encrypt-throughput} compares the runtime of two encryption approaches: (i) \emph{singular encryption}, which encrypts each tuple individually into a one-slot ciphertext, and (ii) \emph{packed encryption}, which converts a batch of plaintexts into a vector ciphertext using our SIMD-style packing API. All evaluations are performed within MySQL using Hermes UDFs over three datasets (cf.~Section~\ref{sec:datasets}). We measure both the total time (in milliseconds) and the per-tuple latency (in microseconds).
