@@ -1,4 +1,4 @@
-# Update on Mar 11, 2026 (on Chameleon Cloud TACC & CloudLab Wisconsin)
+# Update on Mar 13, 2026 (on Chameleon Cloud)
 From now on, all repositories will be installed on ~/hpdic/ instead of ~/, to avoid cluttering the home directory. So the installation path of Hermes will be ~/hpdic/Hermes/. The installation steps are the same as before, just replace ~/Hermes with ~/hpdic/Hermes.
 
 ## Update Systems
@@ -7,6 +7,12 @@ sudo apt update
 sudo apt install -y btop cmake zlib1g-dev texlive-full
 git config --global user.name "Dongfang Zhao"
 git config --global user.email "dzhao@uw.edu"
+# For UChicago A100-80GB:
+mkdir -p ~/hpdic
+sudo mkfs.ext4 -F /dev/sdb
+sudo mount /dev/sdb ~/hpdic
+sudo chown -R cc:cc ~/hpdic
+sudo chmod 755 ~/hpdic
 ```
 
 ## Install OpenFHE
@@ -75,7 +81,7 @@ cd ~/hpdic/Hermes
 
 Example output:
 ```bash
-donzhao@node0:~/hpdic/Hermes$ cd ~/hpdic/Hermes
+cc@a100:~/hpdic/Hermes$ cd ~/hpdic/Hermes
 ./scripts/run_crypto.sh
 ./scripts/run_singular.sh
 ./scripts/run_pack.sh
@@ -142,7 +148,7 @@ Dave    70800
 
 [✓] Test completed successfully.
 
-[HERMES-TEST] === NEW HERMES PACK TEST @ 2026-03-11 14:49:26 ===
+[HERMES-TEST] === NEW HERMES PACK TEST @ 2026-03-13 21:21:50 ===
 [+] Created table 'employees'.
 [+] Inserted sample employee records.
 [*] Packing salaries per department...
@@ -190,7 +196,7 @@ Dave    70800
 +------+------------+----------------+-------------+
 |    1 |          3 | 1000,9999,1500 | 12499       |
 +------+------------+----------------+-------------+
-donzhao@node0:~/hpdic/Hermes$ 
+cc@a100:~/hpdic/Hermes$ 
 ```
 
 # Update on 1/18/2026, for Chameleon Cloud
