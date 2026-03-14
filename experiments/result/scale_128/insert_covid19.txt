@@ -1,17 +1,11 @@
-[*] Insert experiment on table: tbl_covid19
+[*] Packed insert experiment on table: tbl_covid19
 [*] Loading group_id = 1 data into temp tables...
 [*] Generating 100 inserts...
 [*] Running PACK inserts...
-PACK-INSERT: total=742 ms
-[*] Running SINGULAR inserts...
-SINGULAR-INSERT: total=12416 ms
-[*] Running PLAIN inserts...
-PLAIN-INSERT: total=138 ms
+PACK-INSERT: total=666 ms
 
------- Summary (insert eval on tbl_covid19, group_id=1) ------
-Timestamp: 2026-03-14 19:13:13
+------ Summary (packed insert on tbl_covid19, group_id=1) ------
+Timestamp: 2026-03-14 21:31:53
 Host: a100
 Kernel: 6.8.0-64-generic
-Packed Insert:    742 ms (avg: 7420 us/op)
-Singular Insert:  12416 ms (avg: 124160 us/op)
-Plaintext Insert: 138 ms (avg: 1380 us/op)
+Packed Insert: 666 ms (avg: 6660 us/op)

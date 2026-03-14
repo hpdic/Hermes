@@ -1,3 +1,12 @@
 [*] Running baseline experiment on table: tbl_hg38
 [*] Total rows: 34424
 [*] Timing HERMES_ENC_SINGULAR (bulk SELECT)...
+SINGULAR-ENCRYPT: total=4048408 ms
+[*] Loading group_id = 1 data into temp tables...
+
+------ Baseline Summary (tbl_hg38) ------
+Singular Encrypt: 4048408 ms
+Singular Insert:  12393 ms
+Plaintext Insert: 101 ms
+Singular Remove:  480 ms
+Plaintext Remove: 163 ms
