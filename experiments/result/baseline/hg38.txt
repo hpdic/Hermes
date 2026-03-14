@@ -1,0 +1,3 @@
+[*] Running baseline experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_ENC_SINGULAR (bulk SELECT)...

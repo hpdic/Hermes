@@ -1,0 +1,12 @@
+[*] Running baseline experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_ENC_SINGULAR (bulk SELECT)...
+SINGULAR-ENCRYPT: total=40374 ms
+[*] Loading group_id = 1 data into temp tables...
+
+------ Baseline Summary (tbl_covid19) ------
+Singular Encrypt: 40374 ms
+Singular Insert:  12412 ms
+Plaintext Insert: 112 ms
+Singular Remove:  389 ms
+Plaintext Remove: 97 ms

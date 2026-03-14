@@ -1,12 +1,12 @@
 [*] Running baseline experiment on table: tbl_bitcoin
 [*] Total rows: 1086
 [*] Timing HERMES_ENC_SINGULAR (bulk SELECT)...
-SINGULAR-ENCRYPT: total=127366 ms
+SINGULAR-ENCRYPT: total=127788 ms
 [*] Loading group_id = 1 data into temp tables...
 
 ------ Baseline Summary (tbl_bitcoin) ------
-Singular Encrypt: 127366 ms
-Singular Insert:  12387 ms
-Plaintext Insert: 124 ms
-Singular Remove:  406 ms
-Plaintext Remove: 128 ms
+Singular Encrypt: 127788 ms
+Singular Insert:  12398 ms
+Plaintext Insert: 112 ms
+Singular Remove:  402 ms
+Plaintext Remove: 126 ms

@@ -20,11 +20,13 @@ Please refer to the [INSTALL.md](INSTALL.md) file for detailed installation inst
 ## Quick Start
 
 ```bash
-./experiments/script/convert_csv.sh     # Preprocess datasets and assign group IDs
+./experiments/script/convert_csv.sh     # Preprocess datasets into CSV format
 ./experiments/script/load_csv.sh        # Load data into MySQL
 ./experiments/script/eval_encrypt.sh    # Evaluate encryption
 ./experiments/script/eval_insert.sh     # Evaluate insertion
 ./experiments/script/eval_remove.sh     # Evaluate removal
+./experiments/script/eval_baseline.sh   # Evaluate independent baselines
+./experiments/script/eval_all.sh        # Run full evaluation sweep
 ```
 
 This will produce results in `./experiments/result/*.txt`.
