@@ -6,18 +6,17 @@ echo "[*] Converting raw data to CSV format..."
 # Default group size
 if [[ -z "$1" ]]; then
   echo "Usage: $0 <pack_size>"
-  echo "  ⚠️ Max pack_size = 8192; recommended ≤ 4096 for performance."
-  exit 1
+  echo "  ⚠️ Max pack_size = 8192; recommended 4096 will be used."
 fi
 
-PACK_SIZE="$1"
+PACK_SIZE=${1:-4096}
 
 if (( PACK_SIZE > 8192 )); then
   echo "Error: pack_size must be ≤ 8192"
   exit 1
 fi
 
-TMP_DIR="./tmp"
+TMP_DIR="$HOME/hpdic/Hermes/tmp"
 mkdir -p "$TMP_DIR"
 
 convert() {
@@ -45,8 +44,8 @@ convert() {
     ' "$input" > "$output"
 }
 
-convert "${TMP_DIR}/bitcoin" "$TMP_DIR/bitcoin.csv" "btc_volume"
-convert "${TMP_DIR}/covid19" "$TMP_DIR/covid19.csv" "covid_metric"
-convert "${TMP_DIR}/hg38" "$TMP_DIR/hg38.csv" "gene_metric"
+convert "$HOME/hpdic/Hermes/experiments/dataset/bitcoin" "$TMP_DIR/bitcoin.csv" "btc_volume"
+convert "$HOME/hpdic/Hermes/experiments/dataset/covid19" "$TMP_DIR/covid19.csv" "covid_metric"
+convert "$HOME/hpdic/Hermes/experiments/dataset/hg38" "$TMP_DIR/hg38.csv" "gene_metric"
 
 echo "[✓] CSV files created under $TMP_DIR/"

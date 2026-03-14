@@ -7,7 +7,7 @@ export MYSQL_PWD="hpdic2023"
 MYSQL_USER="hpdic"
 MYSQL_DB="hermes_apps"
 # TMP_DIR="./tmp"
-TMP_DIR="../dataset"
+TMP_DIR="$HOME/hpdic/Hermes/tmp"
 MYSQL_CMD="mysql --local-infile=1 -u $MYSQL_USER"
 
 echo "[*] Creating database (if not exists)..."
@@ -39,8 +39,8 @@ EOF
     $MYSQL_CMD -D $MYSQL_DB -e "SELECT COUNT(*) AS row_count FROM $name;"
 }
 
-import_table "tbl_bitcoin" "$TMP_DIR/bitcoin"
-import_table "tbl_covid19" "$TMP_DIR/covid19"
-import_table "tbl_hg38" "$TMP_DIR/hg38"
+import_table "tbl_bitcoin" "$TMP_DIR/bitcoin.csv"
+import_table "tbl_covid19" "$TMP_DIR/covid19.csv"
+import_table "tbl_hg38" "$TMP_DIR/hg38.csv"
 
 echo "[✓] All tables imported into database '$MYSQL_DB'"

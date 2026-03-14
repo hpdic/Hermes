@@ -6,13 +6,16 @@ MYSQL_USER="hpdic"
 MYSQL_DB="hermes_apps"
 
 if [[ -z "$1" || -z "$2" ]]; then
-  echo "Usage: $0 <table_name> <pack_size>"
+  echo "Usage: $0 <table_name:-tbl_bitcoin> <pack_size:-128>"
   echo "  <pack_size> must be a positive integer ≤ 8192."
   echo "  ⚠️ Note: Although 8192 is the maximum, we recommend using 4096 or smaller for performance and memory stability."
-  exit 1
 fi
-TABLE="$1"
-SIZE_PACK="$2"
+
+# Example: ./eval_insert.sh tbl_bitcoin 128
+# table_name: tbl_bitcoin, tbl_covid19, or tbl_hg38
+
+TABLE=${1:-tbl_bitcoin}
+SIZE_PACK=${2:-128}
 
 PREFIX="${TABLE#tbl_}"  # e.g., tbl_bitcoin → bitcoin
 PACK_TABLE="tbl_${PREFIX}_pack"

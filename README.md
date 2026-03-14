@@ -47,25 +47,11 @@ All functions use the **BFV** scheme via [OpenFHE](https://github.com/openfheorg
 
 ## Quick Start
 
-Build and test with:
-
 ```bash
-./script/build.sh               # Compile and register plugins
-./script/run_crypto.sh          # Run primitive FHE operations
-./script/run_singular.sh        # Run single-tuple demo
-./script/run_pack.sh            # Run packed vector + summation demo
-```
-
----
-
-## Reproducible Experiments
-
-To run the benchmark suite:
-
-```bash
+./experiments/script/convert_csv.sh     # Preprocess datasets and assign group IDs
 ./experiments/script/load_csv.sh        # Load data into MySQL
-./experiments/script/convert_csv.sh     # Preprocess and assign group IDs
-./experiments/script/run_all.sh         # Evaluate encryption, insert, delete
+./experiments/script/eval_encrypt.sh    # Evaluate encryption
+./experiments/script/eval_insert.sh     # Evaluate insertion
 ```
 
 This will produce results in `./experiments/result/*.txt`, covering all three datasets: `covid19`, `bitcoin`, and `hg38`.
@@ -85,7 +71,7 @@ Hermes is designed to:
 
 ## Contact
 
-(c) 2025-2026, HPDIC Lab, https://hpdic.github.io  
+(c) 2025-2026, HPDIC, https://hpdic.github.io  
 Author: Dongfang Zhao  
 Email: <dzhao@uw.edu>
 

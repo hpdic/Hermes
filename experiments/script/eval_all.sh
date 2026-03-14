@@ -31,7 +31,7 @@ if [[ -z "$1" ]]; then
   exit 1
 fi
 
-PACK_SIZE="$1"
+PACK_SIZE=${1:-4096}
 
 if (( PACK_SIZE > 8192 )); then
   echo "Error: pack_size must be ≤ 8192"
