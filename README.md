@@ -17,6 +17,19 @@ The name is also inspired by *Hermes*, the Greek god of communication, reflectin
 
 Please refer to the [INSTALL.md](INSTALL.md) file for detailed installation instructions.
 
+## Quick Start
+
+```bash
+./experiments/script/convert_csv.sh     # Preprocess datasets and assign group IDs
+./experiments/script/load_csv.sh        # Load data into MySQL
+./experiments/script/eval_encrypt.sh    # Evaluate encryption
+./experiments/script/eval_insert.sh     # Evaluate insertion
+./experiments/script/eval_remove.sh     # Evaluate removal
+```
+
+This will produce results in `./experiments/result/*.txt`.
+---
+
 ## Academic Background
 
 Hermes is part of an academic research initiative at the University of Washington, aiming to bridge modern cryptography and database systems. It is the first system to integrate fully homomorphic encryption (FHE) directly into a production-grade SQL engine, supporting vectorized queries with provable security guarantees.
@@ -42,19 +55,6 @@ Hermes exposes the following homomorphic encryption UDFs as native SQL functions
 | `HERMES_SUM_CIPHERS(ct1, ct2)` | EvalAdd of two ciphertexts | `pack/packupdate.cpp` |
 
 All functions use the **BFV** scheme via [OpenFHE](https://github.com/openfheorg/openfhe-development) and are compatible with standard SQL operators such as `SELECT`, `GROUP BY`, and `CAST`.
-
----
-
-## Quick Start
-
-```bash
-./experiments/script/convert_csv.sh     # Preprocess datasets and assign group IDs
-./experiments/script/load_csv.sh        # Load data into MySQL
-./experiments/script/eval_encrypt.sh    # Evaluate encryption
-./experiments/script/eval_insert.sh     # Evaluate insertion
-```
-
-This will produce results in `./experiments/result/*.txt`, covering all three datasets: `covid19`, `bitcoin`, and `hg38`.
 
 ---
 
