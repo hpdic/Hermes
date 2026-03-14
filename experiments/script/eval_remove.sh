@@ -31,14 +31,12 @@ done
 
 PREFIX=${TABLE#tbl_}
 PACK_TABLE='tbl_'$PREFIX'_pack'
-SINGULAR_TABLE='tbl_'$PREFIX'_singular'
-PLAIN_TABLE='tbl_'$PREFIX'_plain'
 
 OUT_DIR='./experiments/result/scale_'$SIZE_PACK
 OUT_FILE=$OUT_DIR'/remove_'$PREFIX'.txt'
 
 mkdir -p $OUT_DIR
-echo '[*] Remove experiment on table: '$TABLE | tee $OUT_FILE
+echo '[*] Packed remove experiment on table: '$TABLE | tee $OUT_FILE
 
 #######################################
 # Step 1: Assume temporary tables already exist from previous insert test
@@ -57,26 +55,13 @@ if (( slot_count <= 1 )); then
 fi
 
 TMP_PACK='tmp_pack_remove.sql'
-TMP_SING='tmp_sing_remove.sql'
-TMP_PLAIN='tmp_plain_remove.sql'
-
-rm -f $TMP_PACK $TMP_SING $TMP_PLAIN
+rm -f $TMP_PACK
 
 k=$slot_count  
 for ((i = 0; i < 100; i++)); do
   slot=$((RANDOM % (slot_count - 2)))
   echo 'SELECT HERMES_PACK_RMV(ctxt_repr, '$slot', '$k') FROM '$PACK_TABLE' WHERE group_id = 1;' >> $TMP_PACK
   ((k--))  
-done
-
-ids_to_delete=$(mysql -u $MYSQL_USER -D $MYSQL_DB -sN -e 'SELECT id FROM '$SINGULAR_TABLE' ORDER BY id ASC LIMIT 100;')
-for id in $ids_to_delete; do
-  echo 'DELETE FROM '$SINGULAR_TABLE' WHERE id = '$id';' >> $TMP_SING
-done
-
-ids_to_delete_plain=$(mysql -u $MYSQL_USER -D $MYSQL_DB -sN -e 'SELECT id FROM '$PLAIN_TABLE' ORDER BY id ASC LIMIT 100;')
-for id in $ids_to_delete_plain; do
-  echo 'DELETE FROM '$PLAIN_TABLE' WHERE id = '$id';' >> $TMP_PLAIN
 done
 
 #######################################
@@ -92,35 +77,13 @@ echo 'PACK-REMOVE: total='$elapsed_pack' ms' | tee -a $OUT_FILE
 mysql -u $MYSQL_USER -D $MYSQL_DB -e 'UPDATE '$PACK_TABLE' SET slot_count = slot_count - 100 WHERE group_id = 1;'
 
 #######################################
-# Step 4: Time SINGULAR DELETE
-#######################################
-echo '[*] Running SINGULAR deletes...' | tee -a $OUT_FILE
-start_sing=$(date +%s%3N)
-mysql -u $MYSQL_USER -D $MYSQL_DB < $TMP_SING > /dev/null
-end_sing=$(date +%s%3N)
-elapsed_sing=$((end_sing - start_sing))
-echo 'SINGULAR-REMOVE: total='$elapsed_sing' ms' | tee -a $OUT_FILE
-
-#######################################
-# Step 5: Time PLAIN DELETE
-#######################################
-echo '[*] Running PLAIN deletes...' | tee -a $OUT_FILE
-start_plain=$(date +%s%3N)
-mysql -u $MYSQL_USER -D $MYSQL_DB < $TMP_PLAIN > /dev/null
-end_plain=$(date +%s%3N)
-elapsed_plain=$((end_plain - start_plain))
-echo 'PLAIN-REMOVE: total='$elapsed_plain' ms' | tee -a $OUT_FILE
-
-#######################################
 # Summary
 #######################################
-rm -f $TMP_PACK $TMP_SING $TMP_PLAIN
+rm -f $TMP_PACK
 
 echo '' | tee -a $OUT_FILE
-echo '------ Summary (remove eval on '$TABLE', group_id=1) ------' | tee -a $OUT_FILE
+echo '------ Summary (packed remove on '$TABLE', group_id=1) ------' | tee -a $OUT_FILE
 echo 'Timestamp: '$(date '+%Y-%m-%d %H:%M:%S') | tee -a $OUT_FILE
 echo 'Host: '$(hostname) | tee -a $OUT_FILE
 echo 'Kernel: '$(uname -r) | tee -a $OUT_FILE
-echo 'Packed Remove:    '$elapsed_pack' ms (avg: '$((elapsed_pack * 10))' us/op)' | tee -a $OUT_FILE
-echo 'Singular Remove:  '$elapsed_sing' ms (avg: '$((elapsed_sing * 10))' us/op)' | tee -a $OUT_FILE
-echo 'Plaintext Remove: '$elapsed_plain' ms (avg: '$((elapsed_plain * 10))' us/op)' | tee -a $OUT_FILE
+echo 'Packed Remove: '$elapsed_pack' ms (avg: '$((elapsed_pack * 10))' us/op)' | tee -a $OUT_FILE

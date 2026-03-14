@@ -7,6 +7,14 @@ SCRIPTS=('./experiments/script/eval_encrypt.sh' './experiments/script/eval_inser
 
 echo '[*] Starting full evaluation sweep...'
 
+### 1. Run Baselines Once
+echo '[*] Running independent baselines...'
+for table in ${TABLES[@]}; do
+  echo '    [+] Executing: ./experiments/script/eval_baseline.sh -t '$table
+  bash ./experiments/script/eval_baseline.sh -t $table
+done
+
+### 2. Run Packed Evaluations
 for size in ${SCALES[@]}; do
   echo '[*] Processing pack size: '$size
   for table in ${TABLES[@]}; do
