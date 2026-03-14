@@ -2,13 +2,16 @@
 [*] Loading group_id = 1 data into temp tables...
 [*] Generating 100 inserts...
 [*] Running PACK inserts...
-PACK-INSERT: total=3471 ms
+PACK-INSERT: total=742 ms
 [*] Running SINGULAR inserts...
-SINGULAR-INSERT: total=1948 ms
+SINGULAR-INSERT: total=12416 ms
+[*] Running PLAIN inserts...
+PLAIN-INSERT: total=138 ms
 
 ------ Summary (insert eval on tbl_covid19, group_id=1) ------
-Timestamp: 2025-06-05 00:15:36
-Host: fhe
-Kernel: 6.8.0-59-generic
-Packed Insert:   3471 ms (avg: 34710 µs/op)
-Singular Insert: 1948 ms (avg: 19480 µs/op)
+Timestamp: 2026-03-14 19:13:13
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert:    742 ms (avg: 7420 us/op)
+Singular Insert:  12416 ms (avg: 124160 us/op)
+Plaintext Insert: 138 ms (avg: 1380 us/op)
