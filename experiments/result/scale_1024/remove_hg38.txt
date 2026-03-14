@@ -1,10 +1,10 @@
 [*] Packed remove experiment on table: tbl_hg38
 [*] Generating 100 deletes...
 [*] Running PACK removes...
-PACK-REMOVE: total=5378 ms
+PACK-REMOVE: total=5410 ms
 
------- Summary (packed remove on tbl_hg38, group_id=1) ------
-Timestamp: 2026-03-14 21:33:21
+Summary (packed remove on tbl_hg38, group_id=1)
+Timestamp: 2026-03-14 23:09:24
 Host: a100
 Kernel: 6.8.0-64-generic
-Packed Remove: 5378 ms (avg: 53780 us/op)
+Packed Remove: 5410 ms (avg: 54100 us/op)

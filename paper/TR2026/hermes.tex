@@ -717,9 +717,34 @@ For the end-to-end evaluations within MySQL, we compare Hermes against a Singula
 
 To isolate our algorithmic improvements from the inherent execution overhead of the database engine, we implement two additional baselines as standalone C++ microbenchmarks. The first is a Standard Packed FHE baseline, which utilizes the same multi-slot ciphertext layout as Hermes but relies on the conventional sequence of logarithmic Galois rotations and masking operations to compute aggregate sums. This comparison isolates the latency reduction achieved specifically by our auxiliary local sum embedding technique. The second microbenchmark employs the Paillier cryptosystem~\cite{paillier1999}, representing the traditional Partially Homomorphic Encryption (PHE) standard for secure database aggregations. Because Paillier supports only scalar additive homomorphism, this evaluation demonstrates how the vectorized parallelism of modern FHE outpaces legacy scalar schemes in analytical throughput.
 
+To guide the remainder of our evaluation, we structure our experiments around four core research questions (RQs):
+\begin{itemize}
+    \item RQ1: How does the vectorized packing data model improve initial data ingestion and encryption throughput compared to singular tuple encryption? We address this in Section~\ref{sec:eval_encryption}.
+    \item RQ2: What is the computational latency of performing secure in-place modifications such as record insertions and deletions over packed ciphertexts? We explore this in Section~\ref{sec:eval_update}.
+    \item RQ3: How does the auxiliary local-sum embedding technique perform against traditional cryptographic aggregation methods in isolated microbenchmarks? We answer this in Section~\ref{sec:eval_microbenchmarks}.
+    \item RQ4: How does the logical group capacity influence the overall execution latency across different relational operators? We analyze this in Section~\ref{sec:eval_scalability}.
+\end{itemize}
+
 \subsection{Encryption Throughput}
+\label{sec:eval_encryption}
 
 \don{TODO}
+% TODO: RQ1 Evaluation
+
+\subsection{In-Place Update Latency}
+\label{sec:eval_update}
+% TODO: RQ2 Evaluation
+
+\subsection{Cryptographic Microbenchmarks}
+\label{sec:eval_microbenchmarks}
+% TODO: RQ3 Evaluation
+
+\subsection{Scalability of Packing Granularity}
+\label{sec:eval_scalability}
+% TODO: RQ4 Evaluation
+
+\subsection{Encryption Throughput}
+
 We begin by evaluating the cost of converting plaintext tuples into homomorphically encrypted representations. This loading step is typically the most expensive preprocessing phase and dominates the storage pipeline in encrypted database systems.
 
 Table~\ref{tab:encrypt-throughput} compares the runtime of two encryption approaches: (i) \emph{singular encryption}, which encrypts each tuple individually into a one-slot ciphertext, and (ii) \emph{packed encryption}, which converts a batch of plaintexts into a vector ciphertext using our SIMD-style packing API. All evaluations are performed within MySQL using Hermes UDFs over three datasets (cf.~Section~\ref{sec:datasets}). We measure both the total time (in milliseconds) and the per-tuple latency (in microseconds).

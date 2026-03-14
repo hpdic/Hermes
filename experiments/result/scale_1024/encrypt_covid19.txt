@@ -1,11 +1,11 @@
 [*] Running packed encryption experiment on table: tbl_covid19
 [*] Total rows: 341
 [*] Timing HERMES_PACK_CONVERT (group-wise)...
-PACKED: total=175 ms
+PACKED: total=150 ms
 
 ------ Summary (table: tbl_covid19) ------
-Timestamp: 2026-03-14 21:33:00
+Timestamp: 2026-03-14 23:08:42
 Host: a100
 Kernel: 6.8.0-64-generic
 Total tuples: 341
-Packed Encrypt:   175 ms (avg: 513 us/row)
+Packed Encrypt:   150 ms (avg: 439 us/row)

@@ -1,0 +1,725 @@
+==> experiments/result/baseline/bitcoin.txt <==
+[*] Running baseline experiment on table: tbl_bitcoin
+[*] Total rows: 1086
+[*] Timing HERMES_ENC_SINGULAR (bulk SELECT)...
+SINGULAR-ENCRYPT: total=127788 ms
+[*] Loading group_id = 1 data into temp tables...
+
+------ Baseline Summary (tbl_bitcoin) ------
+Singular Encrypt: 127788 ms
+Singular Insert:  12398 ms
+Plaintext Insert: 112 ms
+Singular Remove:  402 ms
+Plaintext Remove: 126 ms
+
+==> experiments/result/baseline/covid19.txt <==
+[*] Running baseline experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_ENC_SINGULAR (bulk SELECT)...
+SINGULAR-ENCRYPT: total=40374 ms
+[*] Loading group_id = 1 data into temp tables...
+
+------ Baseline Summary (tbl_covid19) ------
+Singular Encrypt: 40374 ms
+Singular Insert:  12412 ms
+Plaintext Insert: 112 ms
+Singular Remove:  389 ms
+Plaintext Remove: 97 ms
+
+==> experiments/result/baseline/hg38.txt <==
+[*] Running baseline experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_ENC_SINGULAR (bulk SELECT)...
+SINGULAR-ENCRYPT: total=4048408 ms
+[*] Loading group_id = 1 data into temp tables...
+
+------ Baseline Summary (tbl_hg38) ------
+Singular Encrypt: 4048408 ms
+Singular Insert:  12393 ms
+Plaintext Insert: 101 ms
+Singular Remove:  480 ms
+Plaintext Remove: 163 ms
+
+==> experiments/result/scale_1024/encrypt_bitcoin.txt <==
+[*] Running packed encryption experiment on table: tbl_bitcoin
+[*] Total rows: 1086
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=290 ms
+
+------ Summary (table: tbl_bitcoin) ------
+Timestamp: 2026-03-14 23:08:24
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 1086
+Packed Encrypt:   290 ms (avg: 267 us/row)
+
+==> experiments/result/scale_1024/encrypt_covid19.txt <==
+[*] Running packed encryption experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=150 ms
+
+------ Summary (table: tbl_covid19) ------
+Timestamp: 2026-03-14 23:08:42
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 341
+Packed Encrypt:   150 ms (avg: 439 us/row)
+
+==> experiments/result/scale_1024/encrypt_hg38.txt <==
+[*] Running packed encryption experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=4593 ms
+
+------ Summary (table: tbl_hg38) ------
+Timestamp: 2026-03-14 23:09:06
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 34424
+Packed Encrypt:   4593 ms (avg: 133 us/row)
+
+==> experiments/result/scale_1024/insert_bitcoin.txt <==
+[*] Packed insert experiment on table: tbl_bitcoin
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12667 ms
+
+------ Summary (packed insert on tbl_bitcoin, group_id=1) ------
+Timestamp: 2026-03-14 23:08:37
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12667 ms (avg: 126670 us/op)
+
+==> experiments/result/scale_1024/insert_covid19.txt <==
+[*] Packed insert experiment on table: tbl_covid19
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12760 ms
+
+------ Summary (packed insert on tbl_covid19, group_id=1) ------
+Timestamp: 2026-03-14 23:08:55
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12760 ms (avg: 127600 us/op)
+
+==> experiments/result/scale_1024/insert_hg38.txt <==
+[*] Packed insert experiment on table: tbl_hg38
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12708 ms
+
+------ Summary (packed insert on tbl_hg38, group_id=1) ------
+Timestamp: 2026-03-14 23:09:19
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12708 ms (avg: 127080 us/op)
+
+==> experiments/result/scale_1024/remove_bitcoin.txt <==
+[*] Packed remove experiment on table: tbl_bitcoin
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5519 ms
+
+Summary (packed remove on tbl_bitcoin, group_id=1)
+Timestamp: 2026-03-14 23:08:42
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5519 ms (avg: 55190 us/op)
+
+==> experiments/result/scale_1024/remove_covid19.txt <==
+[*] Packed remove experiment on table: tbl_covid19
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5558 ms
+
+Summary (packed remove on tbl_covid19, group_id=1)
+Timestamp: 2026-03-14 23:09:01
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5558 ms (avg: 55580 us/op)
+
+==> experiments/result/scale_1024/remove_hg38.txt <==
+[*] Packed remove experiment on table: tbl_hg38
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5410 ms
+
+Summary (packed remove on tbl_hg38, group_id=1)
+Timestamp: 2026-03-14 23:09:24
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5410 ms (avg: 54100 us/op)
+
+==> experiments/result/scale_128/encrypt_bitcoin.txt <==
+[*] Running packed encryption experiment on table: tbl_bitcoin
+[*] Total rows: 1086
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=1219 ms
+
+------ Summary (table: tbl_bitcoin) ------
+Timestamp: 2026-03-14 23:04:29
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 1086
+Packed Encrypt:   1219 ms (avg: 1122 us/row)
+
+==> experiments/result/scale_128/encrypt_covid19.txt <==
+[*] Running packed encryption experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=418 ms
+
+------ Summary (table: tbl_covid19) ------
+Timestamp: 2026-03-14 23:04:48
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 341
+Packed Encrypt:   418 ms (avg: 1225 us/row)
+
+==> experiments/result/scale_128/encrypt_hg38.txt <==
+[*] Running packed encryption experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=35920 ms
+
+------ Summary (table: tbl_hg38) ------
+Timestamp: 2026-03-14 23:05:43
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 34424
+Packed Encrypt:   35920 ms (avg: 1043 us/row)
+
+==> experiments/result/scale_128/insert_bitcoin.txt <==
+[*] Packed insert experiment on table: tbl_bitcoin
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12650 ms
+
+------ Summary (packed insert on tbl_bitcoin, group_id=1) ------
+Timestamp: 2026-03-14 23:04:42
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12650 ms (avg: 126500 us/op)
+
+==> experiments/result/scale_128/insert_covid19.txt <==
+[*] Packed insert experiment on table: tbl_covid19
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12662 ms
+
+------ Summary (packed insert on tbl_covid19, group_id=1) ------
+Timestamp: 2026-03-14 23:05:01
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12662 ms (avg: 126620 us/op)
+
+==> experiments/result/scale_128/insert_hg38.txt <==
+[*] Packed insert experiment on table: tbl_hg38
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12718 ms
+
+------ Summary (packed insert on tbl_hg38, group_id=1) ------
+Timestamp: 2026-03-14 23:05:56
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12718 ms (avg: 127180 us/op)
+
+==> experiments/result/scale_128/remove_bitcoin.txt <==
+[*] Packed remove experiment on table: tbl_bitcoin
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5603 ms
+
+Summary (packed remove on tbl_bitcoin, group_id=1)
+Timestamp: 2026-03-14 23:04:48
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5603 ms (avg: 56030 us/op)
+
+==> experiments/result/scale_128/remove_covid19.txt <==
+[*] Packed remove experiment on table: tbl_covid19
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5682 ms
+
+Summary (packed remove on tbl_covid19, group_id=1)
+Timestamp: 2026-03-14 23:05:07
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5682 ms (avg: 56820 us/op)
+
+==> experiments/result/scale_128/remove_hg38.txt <==
+[*] Packed remove experiment on table: tbl_hg38
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5673 ms
+
+Summary (packed remove on tbl_hg38, group_id=1)
+Timestamp: 2026-03-14 23:06:02
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5673 ms (avg: 56730 us/op)
+
+==> experiments/result/scale_2048/encrypt_bitcoin.txt <==
+[*] Running packed encryption experiment on table: tbl_bitcoin
+[*] Total rows: 1086
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=149 ms
+
+------ Summary (table: tbl_bitcoin) ------
+Timestamp: 2026-03-14 23:09:25
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 1086
+Packed Encrypt:   149 ms (avg: 137 us/row)
+
+==> experiments/result/scale_2048/encrypt_covid19.txt <==
+[*] Running packed encryption experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=150 ms
+
+------ Summary (table: tbl_covid19) ------
+Timestamp: 2026-03-14 23:09:44
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 341
+Packed Encrypt:   150 ms (avg: 439 us/row)
+
+==> experiments/result/scale_2048/encrypt_hg38.txt <==
+[*] Running packed encryption experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=2285 ms
+
+------ Summary (table: tbl_hg38) ------
+Timestamp: 2026-03-14 23:10:05
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 34424
+Packed Encrypt:   2285 ms (avg: 66 us/row)
+
+==> experiments/result/scale_2048/insert_bitcoin.txt <==
+[*] Packed insert experiment on table: tbl_bitcoin
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12713 ms
+
+------ Summary (packed insert on tbl_bitcoin, group_id=1) ------
+Timestamp: 2026-03-14 23:09:38
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12713 ms (avg: 127130 us/op)
+
+==> experiments/result/scale_2048/insert_covid19.txt <==
+[*] Packed insert experiment on table: tbl_covid19
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12803 ms
+
+------ Summary (packed insert on tbl_covid19, group_id=1) ------
+Timestamp: 2026-03-14 23:09:57
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12803 ms (avg: 128030 us/op)
+
+==> experiments/result/scale_2048/insert_hg38.txt <==
+[*] Packed insert experiment on table: tbl_hg38
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12804 ms
+
+------ Summary (packed insert on tbl_hg38, group_id=1) ------
+Timestamp: 2026-03-14 23:10:18
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12804 ms (avg: 128040 us/op)
+
+==> experiments/result/scale_2048/remove_bitcoin.txt <==
+[*] Packed remove experiment on table: tbl_bitcoin
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5568 ms
+
+Summary (packed remove on tbl_bitcoin, group_id=1)
+Timestamp: 2026-03-14 23:09:43
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5568 ms (avg: 55680 us/op)
+
+==> experiments/result/scale_2048/remove_covid19.txt <==
+[*] Packed remove experiment on table: tbl_covid19
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5678 ms
+
+Summary (packed remove on tbl_covid19, group_id=1)
+Timestamp: 2026-03-14 23:10:02
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5678 ms (avg: 56780 us/op)
+
+==> experiments/result/scale_2048/remove_hg38.txt <==
+[*] Packed remove experiment on table: tbl_hg38
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5354 ms
+
+Summary (packed remove on tbl_hg38, group_id=1)
+Timestamp: 2026-03-14 23:10:24
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5354 ms (avg: 53540 us/op)
+
+==> experiments/result/scale_256/encrypt_bitcoin.txt <==
+[*] Running packed encryption experiment on table: tbl_bitcoin
+[*] Total rows: 1086
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=671 ms
+
+------ Summary (table: tbl_bitcoin) ------
+Timestamp: 2026-03-14 23:06:03
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 1086
+Packed Encrypt:   671 ms (avg: 617 us/row)
+
+==> experiments/result/scale_256/encrypt_covid19.txt <==
+[*] Running packed encryption experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=286 ms
+
+------ Summary (table: tbl_covid19) ------
+Timestamp: 2026-03-14 23:06:22
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 341
+Packed Encrypt:   286 ms (avg: 838 us/row)
+
+==> experiments/result/scale_256/encrypt_hg38.txt <==
+[*] Running packed encryption experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=18108 ms
+
+------ Summary (table: tbl_hg38) ------
+Timestamp: 2026-03-14 23:06:59
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 34424
+Packed Encrypt:   18108 ms (avg: 526 us/row)
+
+==> experiments/result/scale_256/insert_bitcoin.txt <==
+[*] Packed insert experiment on table: tbl_bitcoin
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12705 ms
+
+------ Summary (packed insert on tbl_bitcoin, group_id=1) ------
+Timestamp: 2026-03-14 23:06:16
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12705 ms (avg: 127050 us/op)
+
+==> experiments/result/scale_256/insert_covid19.txt <==
+[*] Packed insert experiment on table: tbl_covid19
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12578 ms
+
+------ Summary (packed insert on tbl_covid19, group_id=1) ------
+Timestamp: 2026-03-14 23:06:34
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12578 ms (avg: 125780 us/op)
+
+==> experiments/result/scale_256/insert_hg38.txt <==
+[*] Packed insert experiment on table: tbl_hg38
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12613 ms
+
+------ Summary (packed insert on tbl_hg38, group_id=1) ------
+Timestamp: 2026-03-14 23:07:12
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12613 ms (avg: 126130 us/op)
+
+==> experiments/result/scale_256/remove_bitcoin.txt <==
+[*] Packed remove experiment on table: tbl_bitcoin
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5390 ms
+
+Summary (packed remove on tbl_bitcoin, group_id=1)
+Timestamp: 2026-03-14 23:06:21
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5390 ms (avg: 53900 us/op)
+
+==> experiments/result/scale_256/remove_covid19.txt <==
+[*] Packed remove experiment on table: tbl_covid19
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5777 ms
+
+Summary (packed remove on tbl_covid19, group_id=1)
+Timestamp: 2026-03-14 23:06:40
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5777 ms (avg: 57770 us/op)
+
+==> experiments/result/scale_256/remove_hg38.txt <==
+[*] Packed remove experiment on table: tbl_hg38
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5531 ms
+
+Summary (packed remove on tbl_hg38, group_id=1)
+Timestamp: 2026-03-14 23:07:17
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5531 ms (avg: 55310 us/op)
+
+==> experiments/result/scale_4096/encrypt_bitcoin.txt <==
+[*] Running packed encryption experiment on table: tbl_bitcoin
+[*] Total rows: 1086
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=152 ms
+
+------ Summary (table: tbl_bitcoin) ------
+Timestamp: 2026-03-14 23:10:24
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 1086
+Packed Encrypt:   152 ms (avg: 139 us/row)
+
+==> experiments/result/scale_4096/encrypt_covid19.txt <==
+[*] Running packed encryption experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=144 ms
+
+------ Summary (table: tbl_covid19) ------
+Timestamp: 2026-03-14 23:10:42
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 341
+Packed Encrypt:   144 ms (avg: 422 us/row)
+
+==> experiments/result/scale_4096/encrypt_hg38.txt <==
+[*] Running packed encryption experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=1239 ms
+
+------ Summary (table: tbl_hg38) ------
+Timestamp: 2026-03-14 23:11:02
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 34424
+Packed Encrypt:   1239 ms (avg: 35 us/row)
+
+==> experiments/result/scale_4096/insert_bitcoin.txt <==
+[*] Packed insert experiment on table: tbl_bitcoin
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12612 ms
+
+------ Summary (packed insert on tbl_bitcoin, group_id=1) ------
+Timestamp: 2026-03-14 23:10:37
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12612 ms (avg: 126120 us/op)
+
+==> experiments/result/scale_4096/insert_covid19.txt <==
+[*] Packed insert experiment on table: tbl_covid19
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12627 ms
+
+------ Summary (packed insert on tbl_covid19, group_id=1) ------
+Timestamp: 2026-03-14 23:10:55
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12627 ms (avg: 126270 us/op)
+
+==> experiments/result/scale_4096/insert_hg38.txt <==
+[*] Packed insert experiment on table: tbl_hg38
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12609 ms
+
+------ Summary (packed insert on tbl_hg38, group_id=1) ------
+Timestamp: 2026-03-14 23:11:15
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12609 ms (avg: 126090 us/op)
+
+==> experiments/result/scale_4096/remove_bitcoin.txt <==
+[*] Packed remove experiment on table: tbl_bitcoin
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5416 ms
+
+Summary (packed remove on tbl_bitcoin, group_id=1)
+Timestamp: 2026-03-14 23:10:42
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5416 ms (avg: 54160 us/op)
+
+==> experiments/result/scale_4096/remove_covid19.txt <==
+[*] Packed remove experiment on table: tbl_covid19
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5385 ms
+
+Summary (packed remove on tbl_covid19, group_id=1)
+Timestamp: 2026-03-14 23:11:01
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5385 ms (avg: 53850 us/op)
+
+==> experiments/result/scale_4096/remove_hg38.txt <==
+[*] Packed remove experiment on table: tbl_hg38
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5325 ms
+
+Summary (packed remove on tbl_hg38, group_id=1)
+Timestamp: 2026-03-14 23:11:21
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5325 ms (avg: 53250 us/op)
+
+==> experiments/result/scale_512/encrypt_bitcoin.txt <==
+[*] Running packed encryption experiment on table: tbl_bitcoin
+[*] Total rows: 1086
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=408 ms
+
+------ Summary (table: tbl_bitcoin) ------
+Timestamp: 2026-03-14 23:07:18
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 1086
+Packed Encrypt:   408 ms (avg: 375 us/row)
+
+==> experiments/result/scale_512/encrypt_covid19.txt <==
+[*] Running packed encryption experiment on table: tbl_covid19
+[*] Total rows: 341
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=154 ms
+
+------ Summary (table: tbl_covid19) ------
+Timestamp: 2026-03-14 23:07:36
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 341
+Packed Encrypt:   154 ms (avg: 451 us/row)
+
+==> experiments/result/scale_512/encrypt_hg38.txt <==
+[*] Running packed encryption experiment on table: tbl_hg38
+[*] Total rows: 34424
+[*] Timing HERMES_PACK_CONVERT (group-wise)...
+PACKED: total=9292 ms
+
+------ Summary (table: tbl_hg38) ------
+Timestamp: 2026-03-14 23:08:04
+Host: a100
+Kernel: 6.8.0-64-generic
+Total tuples: 34424
+Packed Encrypt:   9292 ms (avg: 269 us/row)
+
+==> experiments/result/scale_512/insert_bitcoin.txt <==
+[*] Packed insert experiment on table: tbl_bitcoin
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12558 ms
+
+------ Summary (packed insert on tbl_bitcoin, group_id=1) ------
+Timestamp: 2026-03-14 23:07:31
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12558 ms (avg: 125580 us/op)
+
+==> experiments/result/scale_512/insert_covid19.txt <==
+[*] Packed insert experiment on table: tbl_covid19
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12621 ms
+
+------ Summary (packed insert on tbl_covid19, group_id=1) ------
+Timestamp: 2026-03-14 23:07:49
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12621 ms (avg: 126210 us/op)
+
+==> experiments/result/scale_512/insert_hg38.txt <==
+[*] Packed insert experiment on table: tbl_hg38
+[*] Loading group_id = 1 data into temp tables...
+[*] Generating 100 inserts...
+[*] Running PACK inserts...
+PACK-INSERT: total=12951 ms
+
+------ Summary (packed insert on tbl_hg38, group_id=1) ------
+Timestamp: 2026-03-14 23:08:18
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Insert: 12951 ms (avg: 129510 us/op)
+
+==> experiments/result/scale_512/remove_bitcoin.txt <==
+[*] Packed remove experiment on table: tbl_bitcoin
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5307 ms
+
+Summary (packed remove on tbl_bitcoin, group_id=1)
+Timestamp: 2026-03-14 23:07:36
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5307 ms (avg: 53070 us/op)
+
+==> experiments/result/scale_512/remove_covid19.txt <==
+[*] Packed remove experiment on table: tbl_covid19
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5615 ms
+
+Summary (packed remove on tbl_covid19, group_id=1)
+Timestamp: 2026-03-14 23:07:55
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5615 ms (avg: 56150 us/op)
+
+==> experiments/result/scale_512/remove_hg38.txt <==
+[*] Packed remove experiment on table: tbl_hg38
+[*] Generating 100 deletes...
+[*] Running PACK removes...
+PACK-REMOVE: total=5438 ms
+
+Summary (packed remove on tbl_hg38, group_id=1)
+Timestamp: 2026-03-14 23:08:23
+Host: a100
+Kernel: 6.8.0-64-generic
+Packed Remove: 5438 ms (avg: 54380 us/op)

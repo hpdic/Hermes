@@ -1,11 +1,11 @@
 [*] Running packed encryption experiment on table: tbl_hg38
 [*] Total rows: 34424
 [*] Timing HERMES_PACK_CONVERT (group-wise)...
-PACKED: total=1680 ms
+PACKED: total=1239 ms
 
 ------ Summary (table: tbl_hg38) ------
-Timestamp: 2026-03-14 21:33:48
+Timestamp: 2026-03-14 23:11:02
 Host: a100
 Kernel: 6.8.0-64-generic
 Total tuples: 34424
-Packed Encrypt:   1680 ms (avg: 48 us/row)
+Packed Encrypt:   1239 ms (avg: 35 us/row)

@@ -1,11 +1,11 @@
 [*] Running packed encryption experiment on table: tbl_bitcoin
 [*] Total rows: 1086
 [*] Timing HERMES_PACK_CONVERT (group-wise)...
-PACKED: total=140 ms
+PACKED: total=408 ms
 
 ------ Summary (table: tbl_bitcoin) ------
-Timestamp: 2026-03-14 21:32:36
+Timestamp: 2026-03-14 23:07:18
 Host: a100
 Kernel: 6.8.0-64-generic
 Total tuples: 1086
-Packed Encrypt:   140 ms (avg: 128 us/row)
+Packed Encrypt:   408 ms (avg: 375 us/row)

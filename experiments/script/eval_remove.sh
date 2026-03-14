@@ -38,13 +38,6 @@ OUT_FILE=$OUT_DIR'/remove_'$PREFIX'.txt'
 mkdir -p $OUT_DIR
 echo '[*] Packed remove experiment on table: '$TABLE | tee $OUT_FILE
 
-#######################################
-# Step 1: Assume temporary tables already exist from previous insert test
-#######################################
-
-#######################################
-# Step 2: Generate 100 deletes
-#######################################
 echo '[*] Generating 100 deletes...' | tee -a $OUT_FILE
 
 slot_count=$(mysql -N -u $MYSQL_USER -D $MYSQL_DB -e 'SELECT slot_count FROM '$PACK_TABLE' WHERE group_id = 1 LIMIT 1;')
@@ -59,14 +52,15 @@ rm -f $TMP_PACK
 
 k=$slot_count  
 for ((i = 0; i < 100; i++)); do
-  slot=$((RANDOM % (slot_count - 2)))
+  safe_bound=$((k - 2))
+  if (( safe_bound < 1 )); then
+    safe_bound=1
+  fi
+  slot=$((RANDOM % safe_bound))
   echo 'SELECT HERMES_PACK_RMV(ctxt_repr, '$slot', '$k') FROM '$PACK_TABLE' WHERE group_id = 1;' >> $TMP_PACK
   ((k--))  
 done
 
-#######################################
-# Step 3: Time PACK REMOVE
-#######################################
 echo '[*] Running PACK removes...' | tee -a $OUT_FILE
 start_pack=$(date +%s%3N)
 mysql -u $MYSQL_USER -D $MYSQL_DB < $TMP_PACK > /dev/null
@@ -76,13 +70,10 @@ echo 'PACK-REMOVE: total='$elapsed_pack' ms' | tee -a $OUT_FILE
 
 mysql -u $MYSQL_USER -D $MYSQL_DB -e 'UPDATE '$PACK_TABLE' SET slot_count = slot_count - 100 WHERE group_id = 1;'
 
-#######################################
-# Summary
-#######################################
 rm -f $TMP_PACK
 
 echo '' | tee -a $OUT_FILE
-echo '------ Summary (packed remove on '$TABLE', group_id=1) ------' | tee -a $OUT_FILE
+echo 'Summary (packed remove on '$TABLE', group_id=1)' | tee -a $OUT_FILE
 echo 'Timestamp: '$(date '+%Y-%m-%d %H:%M:%S') | tee -a $OUT_FILE
 echo 'Host: '$(hostname) | tee -a $OUT_FILE
 echo 'Kernel: '$(uname -r) | tee -a $OUT_FILE

@@ -1,10 +1,10 @@
 [*] Packed remove experiment on table: tbl_bitcoin
 [*] Generating 100 deletes...
 [*] Running PACK removes...
-PACK-REMOVE: total=36 ms
+PACK-REMOVE: total=5307 ms
 
------- Summary (packed remove on tbl_bitcoin, group_id=1) ------
-Timestamp: 2026-03-14 21:32:37
+Summary (packed remove on tbl_bitcoin, group_id=1)
+Timestamp: 2026-03-14 23:07:36
 Host: a100
 Kernel: 6.8.0-64-generic
-Packed Remove: 36 ms (avg: 360 us/op)
+Packed Remove: 5307 ms (avg: 53070 us/op)

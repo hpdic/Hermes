@@ -2,10 +2,10 @@
 [*] Loading group_id = 1 data into temp tables...
 [*] Generating 100 inserts...
 [*] Running PACK inserts...
-PACK-INSERT: total=12737 ms
+PACK-INSERT: total=12951 ms
 
 ------ Summary (packed insert on tbl_hg38, group_id=1) ------
-Timestamp: 2026-03-14 21:32:53
+Timestamp: 2026-03-14 23:08:18
 Host: a100
 Kernel: 6.8.0-64-generic
-Packed Insert: 12737 ms (avg: 127370 us/op)
+Packed Insert: 12951 ms (avg: 129510 us/op)
