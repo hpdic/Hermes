@@ -2,13 +2,16 @@
 [*] Loading group_id = 1 data into temp tables...
 [*] Generating 100 inserts...
 [*] Running PACK inserts...
-PACK-INSERT: total=734 ms
+PACK-INSERT: total=750 ms
 [*] Running SINGULAR inserts...
-SINGULAR-INSERT: total=12479 ms
+SINGULAR-INSERT: total=12561 ms
+[*] Running PLAIN inserts...
+PLAIN-INSERT: total=131 ms
 
 ------ Summary (insert eval on tbl_bitcoin, group_id=1) ------
-Timestamp: 2026-03-14 05:27:18
+Timestamp: 2026-03-14 18:46:37
 Host: a100
 Kernel: 6.8.0-64-generic
-Packed Insert:   734 ms (avg: 7340 µs/op)
-Singular Insert: 12479 ms (avg: 124790 µs/op)
+Packed Insert:    750 ms (avg: 7500 us/op)
+Singular Insert:  12561 ms (avg: 125610 us/op)
+Plaintext Insert: 131 ms (avg: 1310 us/op)

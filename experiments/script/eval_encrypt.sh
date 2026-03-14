@@ -1,21 +1,39 @@
 #!/bin/bash
 set -e
 
-export MYSQL_PWD="hpdic2023"
-MYSQL_USER="hpdic"
-MYSQL_DB="hermes_apps"
+export MYSQL_PWD='hpdic2023'
+MYSQL_USER='hpdic'
+MYSQL_DB='hermes_apps'
 
-if [[ -z "$1" || -z "$2" ]]; then
-  echo "Usage: $0 <table_name:-tbl_bitcoin> <pack_size:-128>"
-  echo "  <pack_size> must be a positive integer ≤ 8192."
-  echo "  ⚠️ Note: Although 8192 is the maximum, we recommend using 4096 or smaller for performance and memory stability."
-fi
+# 设置默认值
+TABLE='tbl_bitcoin'
+SIZE_PACK=128
 
-# Example: ./eval_encrypt.sh tbl_bitcoin 128
-# table_name: tbl_bitcoin, tbl_covid19, or tbl_hg38
-
-TABLE=${1:-tbl_bitcoin}
-SIZE_PACK=${2:-128}
+# 解析具名参数
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -t|--table)
+      TABLE="$2"
+      shift 2
+      ;;
+    -p|--pack)
+      SIZE_PACK="$2"
+      shift 2
+      ;;
+    -h|--help)
+      echo 'Usage: $0 [-t table_name] [-p pack_size]'
+      echo '  -t, --table   Specify the table (default: tbl_bitcoin)'
+      echo '  -p, --pack    Specify the pack size (default: 128)'
+      echo '                Must be a positive integer <= 8192.'
+      exit 0
+      ;;
+    *)
+      echo 'Unknown argument: $1'
+      echo 'Run with -h or --help for usage.'
+      exit 1
+      ;;
+  esac
+done
 
 PREFIX="${TABLE#tbl_}"  # e.g., tbl_bitcoin → bitcoin
 OUT_DIR="./experiments/result/scale_${SIZE_PACK}"
