@@ -690,16 +690,7 @@ A particularly subtle issue involves the generation and use of Galois keys for s
 \subsection{Experimental Setup}
 \label{sec:datasets}
 
-All experiments are conducted on a standard Linux server with the following configuration:
-\begin{itemize}
-  \item \textbf{CPU:} Intel Xeon Silver 4310 @ 2.10GHz, 64 cores
-  \item \textbf{Memory:} 256GB DDR4
-  \item \textbf{OS:} Ubuntu 24.04 LTS
-  \item \textbf{MySQL:} v8.0.42
-  \item \textbf{OpenFHE:} v1.2.4 with BFV scheme
-\end{itemize}
-Our evaluation uses a default ring dimension of $N = 2^{14}$ and plaintext modulus $t = 2^{16}$, resulting in $n = 8192$ plaintext slots per ciphertext.
-
+All experiments are conducted on a Dell PowerEdge R6525 server provisioned via the CHI@UC Chameleon testbed~\cite{chameleoncloud}. The compute node is equipped with dual AMD EPYC 7763 processors operating at 2.45GHz, providing a total of 128 physical cores and 256 hardware threads, alongside 512GB of memory. The system runs on Ubuntu 24.04 LTS and utilizes MySQL version 8.0.42 as the underlying relational database engine. The homomorphic cryptographic operations are implemented using OpenFHE version 1.2.4 configured with the BFV scheme. For all evaluations, we establish the encryption context using a default ring dimension of $N=2^{14}$ and a plaintext modulus of $t=2^{16}$, which yields exactly $n=8192$ plaintext slots per ciphertext for vectorized execution.
 
 % Optional table with datasets
 \begin{table}[!t]
@@ -719,6 +710,12 @@ Bitcoin~\cite{bitcoin_trade}  & Finance    & 1,086 & $\sim$[0, $2^{31}$] \\
 
 We evaluate Hermes on three real-world datasets that represent diverse application domains and data distributions, summarized in Table~\ref{tab:datasets}. The \textbf{COVID-19} dataset contains 341 daily records of pandemic-related statistics in the U.S., such as hospitalizations and case counts. The \textbf{hg38} dataset corresponds to genomic annotations in the human reference genome, consisting of over 34,000 entries such as transcription start sites and exon counts. The \textbf{Bitcoin} dataset records cryptocurrency trade volumes on a 3-day interval from 2013 to 2022. Since raw Bitcoin trade values are extremely large, we apply a rescaling factor of $1/24$ to obtain minute-level approximations before encryption.
 All datasets are stored as single-attribute tables in a MySQL database. Hermes operates over these tables using only SQL-based UDFs, without modifying schema definitions or client-side logic. We use a packing size of 8192 slots throughout all experiments, and all queries are executed on a single-node MySQL server with OpenFHE v1.2.4.
+
+To comprehensively evaluate the architectural and algorithmic advantages of Hermes, we establish four distinct baselines. We partition these baselines into end-to-end system macrobenchmarks executed within the database engine and isolated cryptographic microbenchmarks.
+
+For the end-to-end evaluations within MySQL, we compare Hermes against a Singular FHE approach and a Plaintext baseline. The Singular FHE baseline represents a naive integration where each database tuple is encrypted into an independent ciphertext without SIMD batching. This configuration highlights the computational and storage overheads of unpaced encryption and justifies our vectorized data model. The Plaintext baseline operates on completely unencrypted data using standard SQL queries. It serves as the absolute performance ceiling to quantify the exact system-level penalty introduced by our cryptographic layer.
+
+To isolate our algorithmic improvements from the inherent execution overhead of the database engine, we implement two additional baselines as standalone C++ microbenchmarks. The first is a Standard Packed FHE baseline, which utilizes the same multi-slot ciphertext layout as Hermes but relies on the conventional sequence of logarithmic Galois rotations and masking operations to compute aggregate sums. This comparison isolates the latency reduction achieved specifically by our auxiliary local sum embedding technique. The second microbenchmark employs the Paillier cryptosystem~\cite{paillier1999}, representing the traditional Partially Homomorphic Encryption (PHE) standard for secure database aggregations. Because Paillier supports only scalar additive homomorphism, this evaluation demonstrates how the vectorized parallelism of modern FHE outpaces legacy scalar schemes in analytical throughput.
 
 \subsection{Encryption Throughput}
 
