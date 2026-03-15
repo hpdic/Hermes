@@ -42,6 +42,22 @@ sudo mysql_secure_installation
 # Answer the interactive questions above (just enter for all of them)
 ```
 
+## Install IPCL (optional, for Intel Paillier)
+```bash
+cd ~/hpdic
+sudo apt install nasm libcereal-dev -y
+git clone git@github.com:hpdic/pailliercryptolib.git
+cd pailliercryptolib
+export IPCL_ROOT=$(pwd)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_NASM_COMPILER=/usr/bin/nasm
+cmake --build build -j
+sudo cmake --install build
+cd ~/hpdic/Hermes/experiments/cpp
+g++ -std=c++17 hello_ipcl.cpp -o hello_ipcl.out -I/home/cc/hpdic/pailliercryptolib/ipcl/include -I/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/include -L/home/cc/hpdic/pailliercryptolib/build/ipcl -L/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/lib/intel64 -lipcl -lippcp -lcrypto
+export LD_LIBRARY_PATH=/home/cc/hpdic/pailliercryptolib/build/ipcl:/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/lib/intel64:$LD_LIBRARY_PATH
+./hello_ipcl.out
+```
+
 ## Install Hermes
 ```bash
 cd ~/hpdic
