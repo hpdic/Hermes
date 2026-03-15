@@ -22,7 +22,8 @@ int main() {
     return 0;
 }
 
-/**
-g++ hello_ipcl.cpp -o hello_ipcl.out -lipcl -lcrypto
+/** To compile and run this code, use the following commands in the terminal:
+g++ -std=c++17 hello_ipcl.cpp -o hello_ipcl.out -I/home/cc/hpdic/pailliercryptolib/ipcl/include -I/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/include -L/home/cc/hpdic/pailliercryptolib/build/ipcl -L/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/lib/intel64 -lipcl -lippcp -lcrypto
+export LD_LIBRARY_PATH=/home/cc/hpdic/pailliercryptolib/build/ipcl:/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/lib/intel64:$LD_LIBRARY_PATH
 ./hello_ipcl.out
  */
