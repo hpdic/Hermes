@@ -743,7 +743,28 @@ When operating at the optimal packing scale of 4096 slots, Hermes reduces the to
 
 \subsection{In-Place Update Latency}
 \label{sec:eval_update}
-% TODO: RQ2 Evaluation
+
+To answer RQ2, we evaluate the system performance for in-place data modifications. We focus on the amortized latency per tuple to accurately reflect the throughput capabilities of the vectorized packing architecture under bulk operation workloads.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{fig/eval_insert.pdf}
+\caption{Amortized in-place insertion latency per tuple across three evaluation datasets. The vertical axes utilize a logarithmic scale. The floating labels denote the relative speedup of Hermes-4096 against the Singular FHE baseline.}
+\label{fig:insert}
+\end{figure*}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{fig/eval_remove.pdf}
+\caption{Amortized in-place deletion latency per tuple across three evaluation datasets. The vertical axes utilize a logarithmic scale. The floating labels denote the relative speedup of Hermes-4096 against the Singular FHE baseline.}
+\label{fig:remove}
+\end{figure*}
+
+Figure~\ref{fig:insert} presents the amortized latency for insertion operations. The Singular FHE baseline exhibits a severe bottleneck, requiring approximately 124 milliseconds to insert a single tuple. This delay stems from the mathematical requirement to generate a complete polynomial ciphertext for every isolated record. Hermes leverages the SIMD slots to distribute this cryptographic overhead. Under the optimal configuration of Hermes-4096, the amortized insertion time is reduced to approximately 0.03 milliseconds per tuple. This structural advantage translates to an over 4000x speedup for the Bitcoin dataset and similar gains across the other workloads.
+
+Figure~\ref{fig:remove} illustrates the performance of deletion operations. In the Singular FHE system, a deletion is a direct SQL drop operation requiring merely 4 milliseconds. Hermes cannot physically drop rows within a packed ciphertext and must instead execute homomorphic masking to erase specific slots. Although a single packed deletion takes around 54 milliseconds to compute, amortizing this operation across 4096 slots yields an effective latency of 0.013 milliseconds per tuple. As highlighted by the overlaid metrics, this results in a 369x speedup over the singular approach for the hg38 dataset. Other two datasets show similar trends, leading to speedups around 300x.
+
+These empirical results validate that the SIMD packing design does not degrade the practical update performance. By amortizing the cryptographic polynomial operations across thousands of relational tuples, Hermes successfully maintains sub-millisecond effective latencies for both insertions and deletions.
 
 \subsection{Cryptographic Microbenchmarks}
 \label{sec:eval_microbenchmarks}
