@@ -7,7 +7,7 @@ os.makedirs(fig_dir, exist_ok=True)
 
 methods = ['Singular FHE', 'Hermes (128)', 'Hermes (4096)']
 colors = ['#d62728', '#6baed6', '#08519c']
-hatches = ['//', '', '']
+hatches = ['//', '\\\\', 'xx']
 
 time_covid19 = [40374, 418, 144]
 time_bitcoin = [127788, 1219, 152]
@@ -66,4 +66,4 @@ fig.legend([b1[0], b1[1], b1[2], l1[0]],
 plt.tight_layout()
 out_path = os.path.join(fig_dir, 'eval_encryption.pdf')
 plt.savefig(out_path, format='pdf', bbox_inches='tight')
-print('Rich throughput plot saved successfully to: ' + out_path)
+print('Rich throughput plot with textures saved successfully to: ' + out_path)
