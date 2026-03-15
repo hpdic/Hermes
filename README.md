@@ -31,9 +31,15 @@ Please refer to the [INSTALL.md](INSTALL.md) file for detailed installation inst
 ./experiments/script/eval_all_baseline.sh
 ./experiments/script/eval_all_hermes.sh
 tail -n +1 experiments/result/*/*.txt > all_results.txt
+
+# To setup Python environment for plotting:
+cd ~/hpdic
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install matplotlib
 ```
 
-This will produce results in `./experiments/result/*.txt`.
 ---
 
 ## Academic Background

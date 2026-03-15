@@ -741,127 +741,20 @@ To guide the remainder of our evaluation, we structure our experiments around fo
 
 \subsection{Scalability of Packing Granularity}
 \label{sec:eval_scalability}
-% TODO: RQ4 Evaluation
 
-\subsection{Encryption Throughput}
-
-We begin by evaluating the cost of converting plaintext tuples into homomorphically encrypted representations. This loading step is typically the most expensive preprocessing phase and dominates the storage pipeline in encrypted database systems.
-
-Table~\ref{tab:encrypt-throughput} compares the runtime of two encryption approaches: (i) \emph{singular encryption}, which encrypts each tuple individually into a one-slot ciphertext, and (ii) \emph{packed encryption}, which converts a batch of plaintexts into a vector ciphertext using our SIMD-style packing API. All evaluations are performed within MySQL using Hermes UDFs over three datasets (cf.~Section~\ref{sec:datasets}). We measure both the total time (in milliseconds) and the per-tuple latency (in microseconds).
-
-\begin{table}[ht]
+\begin{figure*}[!t]
 \centering
-\caption{Encryption throughput comparison across datasets.}
-\label{tab:encrypt-throughput}
-\small
-\begin{tabular}{lccc}
-\toprule
-\textbf{Metric} & \textbf{COVID-19} & \textbf{Bitcoin} & \textbf{hg38} \\
-\midrule
-Total Tuples           & 341      & 1086     & 34424    \\
-Packed Encrypt (ms)    & 33       & 28       & 315      \\
-Packed Avg ($\mu$s)    & 96       & 25       & 9        \\
-Singular Encrypt (ms)  & 5270     & 16239    & 508963   \\
-Singular Avg ($\mu$s)  & 15454    & 14953    & 14785    \\
-\midrule
-Speedup ($\times$)     & 161$\times$ & 598$\times$ & 1643$\times$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+\includegraphics[width=\textwidth]{fig/eval_scalability.pdf}
+\caption{Performance scalability of Hermes across varying packing scales from 128 to 4096 slots. Subfigure (a) shows the total encryption time in a log-log scale. Subfigures (b) and (c) display the execution time for 100 in place insertions and deletions respectively.}
+\label{fig:scalability}
+\end{figure*}
 
-Across all datasets, Hermes achieves substantial speedups with packed encryption: \textbf{161$\times$} for \texttt{COVID-19}, a remarkable \textbf{598$\times$} on the lightweight \texttt{bitcoin} workload, and an impressive \textbf{1643$\times$} speedup on the full-scale \texttt{hg38} dataset. These gains arise from amortizing expensive encryption operations across slots, reducing the number of encryption calls, and avoiding repeated memory allocation and ciphertext construction.
+To address RQ4, we analyze the system performance across different logical group capacities ranging from 128 to 4096 slots. Figure~\ref{fig:scalability} illustrates the execution latency for encryption, insertion, and deletion operations under varying packing scales.
 
-We emphasize that this experiment isolates encryption cost from I/O overhead. The `INSERT INTO` latency is dominated by MySQL’s internal transaction logic and is orthogonal to the observed compute-time performance of encryption itself. As such, these results represent the upper bound of Hermes' cryptographic efficiency under practical SQL workflows.
+Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship between the packing scale and the total encryption time. As the packing capacity doubles, the number of required physical ciphertexts is reduced by half. This leads to an exponential reduction in the overall cryptographic overhead. For example, encrypting the complete hg38 dataset takes over 35 seconds with a pack size of 128 but drops to approximately 1.2 seconds when the scale expands to 4096. This validates the design philosophy that maximizing the utilization of plaintext slots effectively amortizes the initial data ingestion latency.
 
-\subsection{Insertion Performance}
-
-To evaluate insertions, we initialize both singular and packed tables using group~1 of each dataset. 
-We then generate 100 random integers and insert them either individually (singular) or into a specific slot (packed). 
-We measure both the total latency and the per-insert average.
-
-\begin{table}[ht]
-\centering
-\caption{Insertion latency comparison for 100 encrypted inserts.}
-\label{tab:insert}
-\small
-\begin{tabular}{lccc}
-\toprule
-\textbf{Metric} & \textbf{COVID-19} & \textbf{Bitcoin} & \textbf{hg38} \\
-\midrule
-Packed Insert (ms)     & 644     & 632     & 3497     \\
-Singular Insert (ms)  & 2067   & 2026   & 2025    \\
-% \midrule
-% Packed Avg ($\mu$s)    & 6440    & 6320    & 34970    \\
-% Singular Avg ($\mu$s)  & 20670   & 20260   & 20250    \\
-\midrule
-Speedup ($\times$)     & 3.2$\times$ & 3.2$\times$ & 0.6$\times$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-As shown in Table~\ref{tab:insert}, packed insertion consistently outperforms singular insertion on the \texttt{COVID-19} and \texttt{bitcoin} datasets, reducing per-insert latency by over \(3\times\). 
-This performance gain is attributed to Hermes' in-place ciphertext editing using \texttt{HERMES\_PACK\_ADD}, which enables localized modification of encrypted vectors without reconstructing new ciphertexts for each tuple.
-
-However, the \texttt{hg38} dataset exhibits an inverse pattern where packed insertion is notably slower. 
-This slowdown likely stems from large-slot shifts triggering costly Galois automorphism operations and increased memory pressure from repeated ciphertext evaluations. 
-While correctness is preserved, this highlights a corner case where packed operations may be less efficient than singular encryption, particularly under high-index updates.
-
-\subsection{Deletion Performance}
-
-We benchmark 100 deletions on both singular and packed tables.
-Packed deletions use \texttt{HERMES\_PACK\_RMV} to clear a specified slot and shift the last slot forward, while singular deletions remove ciphertexts one by one.
-Table~\ref{tab:delete} reports total and per-deletion latency for both approaches across all datasets.
-
-\begin{table}[ht]
-\centering
-\caption{Packed vs. Singular deletion latency.}
-\label{tab:delete}
-\begin{tabular}{lrrrr}
-\toprule
-\textbf{Metric} & \textbf{covid19} & \textbf{bitcoin} & \textbf{hg38} \\
-\midrule
-Packed total (ms)         & 18     & 29     & 1590   \\
-% Packed avg ($\mu$s/op)    & 180    & 290    & 15900  \\
-% \midrule
-Singular total (ms)       & 367    & 946    & 602    \\
-% Singular avg ($\mu$s/op)  & 3670   & 9460   & 6020   \\
-\midrule
-Speedup ($\times$)       & 20.4$\times$  & 32.6$\times$  & 0.4$\times$   \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-We observe that packed deletion significantly outperforms singular deletion on \texttt{covid19} and \texttt{bitcoin}, achieving speedups of $20.4\times$ and $32.6\times$, respectively.
-These datasets have relatively small ciphertext sizes, so the overhead of packing amortizes well.
-However, on the \texttt{hg38} dataset, the packed deletion is slower than the singular counterpart.
-This inversion is due to the large slot width and high noise budget of the packed ciphertext, which amplifies the cost of masking and Galois rotation.
-This result confirms that packed deletion scales less favorably on heavy ciphertexts and motivates future work in adaptive slot reuse and lazy compaction.
-
-\subsection{Scalability with Respect to Packing Granularity}
-
-We evaluate how the packed group size affects the performance of encryption, insertion, and deletion in Hermes, using the full \texttt{hg38} dataset. Table~\ref{tab:group_size_eval} reports the total runtime (in milliseconds) for each operation under six group sizes, ranging from 128 to 4,096 slots.
-
-\begin{table}[ht]
-\centering
-\caption{Total latency (ms) for 100 operations on \texttt{hg38} under varying group sizes.}
-\label{tab:group_size_eval}
-\begin{tabular}{rccc}
-\toprule
-\textbf{Group Size} & \textbf{Encrypt} & \textbf{Insert} & \textbf{Delete} \\
-\midrule
-128   & 8,321 & 3,437 & 1,386 \\
-256   & 4,365 & 3,396 & 1,360 \\
-512   & 3,252 & 3,452 & 1,456 \\
-1,024 & 2,289 & 3,437 & 1,512 \\
-2,048 & 1,014 & 3,413 & 1,509 \\
-4,096 &   625 & 3,394 & 1,535 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Encryption shows a clear inverse relationship with group size: larger groups yield lower total encryption time due to better amortization across slots. Moving from 128 to 4,096 slots reduces encryption time by over $13\times$, from 8,321\,ms down to 625\,ms. This confirms the expected scaling benefit of SIMD-style batching in BFV.
-
-Insertion and deletion times, however, remain relatively flat across group sizes, varying only within a narrow band (approximately 3,400–3,450\,ms for inserts and 1,360–1,535\,ms for deletes). The lack of strong scaling in update operations is due to the fixed cost of rotation and masking within large ciphertexts. For instance, while packing reduces the number of ciphertexts to manage, larger slot vectors incur higher shift and noise overhead per update.
+Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) reveal that the performance of in-place modifications remains entirely decoupled from the packing scale. The time required to perform 100 insertions or 100 deletions stays roughly constant across all scales. Specifically, the batch insertions stabilize at approximately 12.6 seconds, while the corresponding deletions take about 5.4 seconds. 
+This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent data modifications.
 
 % \section{Related Work}
 % \label{sec:related}
