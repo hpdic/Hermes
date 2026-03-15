@@ -768,7 +768,22 @@ These empirical results validate that the SIMD packing design does not degrade t
 
 \subsection{Cryptographic Microbenchmarks}
 \label{sec:eval_microbenchmarks}
-% TODO: RQ3 Evaluation
+
+To answer RQ3, we isolate the core cryptographic primitives from the database engine to evaluate the intrinsic efficiency of the Hermes data model. We focus on two critical operations: batched addition and global aggregation. All benchmarks are executed with $N=2^{14}$ and $t=65537$, yielding 8192 slots.
+
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{fig/eval_microbenchmarks.pdf}
+\caption{Cryptographic microbenchmarks comparing (a) vector-add throughput against Intel-accelerated Paillier and (b) Hermes rotation-free aggregation against the standard logarithmic-rotation FHE baseline. Both vertical axes use a logarithmic scale.}
+\label{fig:microbenchmarks}
+\end{figure}
+
+Figure~\ref{fig:microbenchmarks}(a) compares the throughput of encrypted addition between the proposed Hermes data model and the Intel Paillier Cryptosystem Library (IPCL)~\cite{ipcl_github}. While Paillier is a highly optimized partially homomorphic scheme, its scalar nature requires $n$ separate ciphertext additions to process $n$ tuples. As the packing scale increases to 8192 slots, Paillier's latency grows linearly to 120.5 ms. In contrast, Hermes utilizes the SIMD capabilities of BFV to perform a single vector-add operation that processes all 8192 slots simultaneously. This results in a near-constant latency of 1.57 ms, representing a 76x throughput advantage at the maximum scale.
+
+Figure~\ref{fig:microbenchmarks}(b) evaluates the scalability of encrypted aggregation. Standard FHE aggregation strategies rely on a sequence of $\log n$ Galois rotations and relinearizations to sum internal slots. At 8192 slots, this conventional approach consumes over 1165 ms per ciphertext. Hermes fundamentally bypasses this bottleneck by embedding a precomputed local sum into a reserved auxiliary slot during the packing phase. Global aggregation in Hermes is thus reduced to a single ciphertext-level addition over these auxiliary slots. As shown in the results, Hermes completes the same aggregation in 1.58 ms, achieving a 738x speedup over the rotation-based baseline.
+
+These microbenchmarks demonstrate that the performance gains in Hermes are not merely implementation-level optimizations but stem from a structural shift in how homomorphic primitives are applied to relational data. By aligning the database layout with the algebraic invariants of SIMD-FHE, Hermes transforms traditionally expensive cryptographic tasks into constant-time operations.
 
 \subsection{Scalability of Packing Granularity}
 \label{sec:eval_scalability}
