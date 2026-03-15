@@ -708,7 +708,7 @@ Bitcoin~\cite{bitcoin_trade}  & Finance    & 1,086 & $\sim$[0, $2^{31}$] \\
 \end{tabular}
 \end{table}
 
-We evaluate Hermes on three real-world datasets that represent diverse application domains and data distributions, summarized in Table~\ref{tab:datasets}. The \textbf{COVID-19} dataset contains 341 daily records of pandemic-related statistics in the U.S., such as hospitalizations and case counts. The \textbf{hg38} dataset corresponds to genomic annotations in the human reference genome, consisting of over 34,000 entries such as transcription start sites and exon counts. The \textbf{Bitcoin} dataset records cryptocurrency trade volumes on a 3-day interval from 2013 to 2022. Since raw Bitcoin trade values are extremely large, we apply a rescaling factor of $1/24$ to obtain minute-level approximations before encryption.
+We evaluate Hermes on three real-world datasets that represent diverse application domains and data distributions, summarized in Table~\ref{tab:datasets}. The \textit{COVID-19} dataset contains 341 daily records of pandemic-related statistics in the U.S., such as hospitalizations and case counts. The \textit{hg38} dataset corresponds to genomic annotations in the human reference genome, consisting of over 34,000 entries such as transcription start sites and exon counts. The \textit{Bitcoin} dataset records cryptocurrency trade volumes on a 3-day interval from 2013 to 2022. Since raw Bitcoin trade values are extremely large, we apply a rescaling factor of $1/24$ to obtain minute-level approximations before encryption.
 All datasets are stored as single-attribute tables in a MySQL database. Hermes operates over these tables using only SQL-based UDFs, without modifying schema definitions or client-side logic. We use a packing size of 8192 slots throughout all experiments, and all queries are executed on a single-node MySQL server with OpenFHE v1.2.4.
 
 To comprehensively evaluate the architectural and algorithmic advantages of Hermes, we establish four distinct baselines. We partition these baselines into end-to-end system macrobenchmarks executed within the database engine and isolated cryptographic microbenchmarks.
@@ -728,8 +728,18 @@ To guide the remainder of our evaluation, we structure our experiments around fo
 \subsection{Encryption Throughput}
 \label{sec:eval_encryption}
 
-\don{TODO}
-% TODO: RQ1 Evaluation
+To answer RQ1, we evaluate the initial data ingestion performance by focusing strictly on the cryptographic overhead. We compare the Hermes vectorized packing model at its boundary capacities against the Singular FHE baseline. Figure~\ref{fig:encryption} presents both the absolute time required to encrypt the complete tables and the normalized throughput measured in tuples per second. The vertical axes utilize a logarithmic scale to properly depict the massive performance gap.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{fig/eval_encryption.pdf}
+\caption{Encryption throughput and absolute time comparison across three datasets. Subfigures (a), (b), and (c) display the evaluation for the Singular FHE baseline, the conservative Hermes configuration at 128 slots, and the optimal Hermes configuration at 4096 slots. The left vertical axes and bars represent absolute encryption time in milliseconds. The right vertical axes and the overlaid line graphs track the processing throughput measured in tuples per second (tps). All vertical axes utilize a logarithmic scale.}
+\label{fig:encryption}
+\end{figure*}
+
+The Singular FHE baseline forces the database to generate an independent ciphertext for every single tuple. As shown in Figure~\ref{fig:encryption}(c), encrypting the hg38 dataset tuple by tuple consumes over 4048 seconds, yielding a slow throughput of merely 8 tuples per second. By contrast, Hermes leverages the SIMD capabilities of the BFV scheme to pack multiple relational tuples into a single ciphertext. Even under the most conservative structural configuration of 128 slots, the encryption time for hg38 drops to 35 seconds, boosting the throughput to 958 tuples per second.
+
+When operating at the optimal packing scale of 4096 slots, Hermes reduces the total encryption time for hg38 to 1.2 seconds. The overlaid throughput trajectory highlights this dramatic efficiency gain, revealing a high processing rate of 27783 tuples per second. Similar computational boundaries are observed in the Bitcoin and COVID-19 datasets. These measurements confirm that the vectorized data model successfully reduces the fundamental throughput bottleneck of applying homomorphic encryption to relational database systems.
 
 \subsection{In-Place Update Latency}
 \label{sec:eval_update}
