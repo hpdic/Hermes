@@ -41,7 +41,7 @@ tps_covid19 = [int(341 / (t / 1000)) for t in time_covid19]
 tps_bitcoin = [int(1086 / (t / 1000)) for t in time_bitcoin]
 tps_hg38 = [int(34424 / (t / 1000)) for t in time_hg38]
 
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 5))
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 8))
 plt.rcParams['font.family'] = 'serif'
 
 def plot_rich_panel(ax, time_data, tps_data, title, show_ylabel_left, show_ylabel_right):
@@ -49,31 +49,31 @@ def plot_rich_panel(ax, time_data, tps_data, title, show_ylabel_left, show_ylabe
     
     bars = ax.bar(x, time_data, color=colors, edgecolor='black', hatch=hatches, width=0.5, alpha=0.9)
     ax.set_yscale('log', base=10)
-    ax.set_title(title, fontsize=14, pad=15)
+    ax.set_title(title, fontsize=28, pad=22)
     ax.set_xticks(x)
-    ax.set_xticklabels(methods, fontsize=11)
+    ax.set_xticklabels(methods, fontsize=20, rotation=10)
     ax.grid(axis='y', linestyle=':', alpha=0.5)
     
-    ax.set_ylim(min(time_data) * 0.2, max(time_data) * 50)
+    ax.set_ylim(min(time_data) * 0.2, max(time_data) * 150)
     
     if show_ylabel_left:
-        ax.set_ylabel('Total Encryption Time (ms)', fontsize=12)
+        ax.set_ylabel('Total Encryption Time (ms)', fontsize=24)
 
     for bar in bars:
         yval = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2.0, yval * 1.2, str(int(yval)) + ' ms', ha='center', va='bottom', fontsize=10)
+        ax.text(bar.get_x() + bar.get_width()/2.0, yval * 1.3, str(int(yval)) + ' ms', ha='center', va='bottom', fontsize=18)
 
     ax2 = ax.twinx()
-    line = ax2.plot(x, tps_data, color='#ff7f0e', marker='^', markersize=9, linestyle='-.', linewidth=2.5)
+    line = ax2.plot(x, tps_data, color='#ff7f0e', marker='^', markersize=15, linestyle='-.', linewidth=3.5)
     ax2.set_yscale('log', base=10)
     
-    ax2.set_ylim(min(tps_data) * 0.2, max(tps_data) * 50)
+    ax2.set_ylim(min(tps_data) * 0.2, max(tps_data) * 150)
     
     for i, txt in enumerate(tps_data):
-        ax2.text(x[i], txt * 1.3, str(txt) + ' tps', ha='center', va='bottom', color='#d95f02', fontsize=10)
+        ax2.text(x[i], txt * 1.4, str(txt) + ' tps', ha='center', va='bottom', color='#d95f02', fontsize=18)
         
     if show_ylabel_right:
-        ax2.set_ylabel('Throughput (Tuples / Second)', fontsize=12, color='#d95f02')
+        ax2.set_ylabel('Throughput (Tuples / Second)', fontsize=24, color='#d95f02')
     else:
         ax2.set_yticks([]) 
         
@@ -85,9 +85,9 @@ b3, l3 = plot_rich_panel(ax3, time_hg38, tps_hg38, '(c) hg38 (34424 tuples)', Fa
 
 fig.legend([b1[0], b1[1], b1[2], l1[0]], 
            ['Singular FHE', 'Hermes Packed (Conservative: 128)', 'Hermes Packed (Optimal: 4096)', 'Throughput Trajectory'], 
-           loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=4, fontsize=11, frameon=False)
+           loc='upper center', bbox_to_anchor=(0.5, 1.18), ncol=4, fontsize=22, frameon=False)
 
 plt.tight_layout()
 out_path = os.path.join(fig_dir, 'eval_encryption.pdf')
 plt.savefig(out_path, format='pdf', bbox_inches='tight')
-print('Rich throughput plot with textures saved successfully to: ' + out_path)
+print('Giant font throughput plot saved successfully to: ' + out_path)
