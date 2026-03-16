@@ -49,7 +49,7 @@
 \begin{document}
 
 \begin{abstract}
-Fully Homomorphic Encryption (FHE) promises the ability to compute over encrypted data without revealing sensitive contents. Yet, integrating it into real-world relational databases remains elusive due to prohibitive performance overhead and the structural mismatch between mutable database records and static ciphertexts. This paper presents Hermes, a system that enables homomorphically encrypted vectorized relational queries directly inside a standard SQL engine. To bridge the relational and algebraic abstractions, Hermes introduces a SIMD-aware data model that packs multiple records per ciphertext. By embedding precomputed aggregate statistics alongside data slots, the system supports efficient rotation-free aggregations. Furthermore, to overcome ciphertext immutability, we develop data-oblivious homomorphic algorithms based on slot masking and shifting, enabling secure in-place record modifications. Hermes is implemented as native loadable functions in MySQL, requiring no changes to the query planner or execution engine. Extensive evaluations on diverse datasets demonstrate up to 1600x higher throughput in encryption and over 30x speedup in insertion compared to conventional FHE implementations.
+Fully Homomorphic Encryption (FHE) promises the ability to compute over encrypted data without revealing sensitive contents. Yet, integrating it into real-world relational databases remains elusive due to prohibitive performance overhead and the structural mismatch between mutable database records and static ciphertexts. This paper presents Hermes, a system that enables homomorphically encrypted vectorized relational queries directly inside a standard SQL engine. To bridge the relational and algebraic abstractions, Hermes introduces a SIMD-aware data model that packs multiple records per ciphertext. By embedding precomputed aggregate statistics alongside data slots, the system supports efficient rotation-free aggregations. Furthermore, to overcome ciphertext immutability, we develop data-oblivious homomorphic algorithms based on slot masking and shifting, enabling secure in-place record modifications. Hermes is implemented as native loadable functions in MySQL, marking the first practical integration of FHE into an industrial-grade relational database engine. Extensive evaluations across diverse datasets demonstrate an over 3400x increase in encryption throughput, an over 4000x speedup for tuple insertions, and a 300x acceleration for deletions when compared to conventional scalar FHE implementations.
 \end{abstract}
 
 % \begin{teaserfigure}
@@ -111,12 +111,14 @@ Hermes facilitates a full-stack encrypted query execution pipeline without modif
 In Summary, this paper makes the following contributions:
 
 \begin{itemize}
-    \item We formalize a vectorized ciphertext encoding that embeds precomputed aggregate statistics, reducing homomorphic aggregation from costly Galois rotations to constant-time additions and amortizing overall encryption overhead.
+    \item We formalize a vectorized ciphertext encoding that embeds precomputed aggregate statistics directly into the cryptographic layout. This architectural innovation reduces homomorphic aggregation from scaling logarithmically with Galois rotations to simple constant-time additions, completely amortizing the overall encryption overhead.
 
-    \item We develop homomorphic shift-and-mask algorithms to achieve in-place slot-level insertions and deletions, enabling dynamic record mutability while preserving strict semantic security.
+    \item We develop data-oblivious shift and mask algorithms to achieve in-place, slot-level insertions and deletions. This enables dynamic tuple mutability over packed ciphertexts while preserving strict semantic security and avoiding conventional client-side recomputations and interactions.
 
-    \item We implement Hermes as a native MySQL extension to execute homomorphic query pipelines entirely within the DBMS. Extensive evaluations demonstrate up to 1,600x higher encryption throughput and 30x insertion speedup compared to conventional FHE implementations.
+    \item We implement Hermes natively as MySQL loadable functions to execute homomorphic query pipelines entirely within the DBMS, marking, to the best of our knowledge, the first practical integration of fully homomorphic encryption into an industrial-grade relational database engine. 
 \end{itemize}
+
+Our extensive evaluations are conducted across diverse real-world datasets, encompassing genomic annotations, cryptocurrency trade volumes, and healthcare statistics. We comprehensively benchmark the system against four distinct execution baselines: unencrypted plaintext SQL, conventional singular FHE, a standard packed FHE configuration relying on logarithmic Galois rotations~\cite{openfhe}, and the Intel Paillier Cryptosystem Library~\cite{ipcl_github}. Extensive evaluations demonstrate significant performance improvements, including an over 3400x increase in encryption throughput, a 4000x speedup for tuple insertions, and a 300x acceleration for deletions when compared to conventional scalar FHE deployments.
 
 \section{Related Work and Preliminaries}
 
@@ -126,7 +128,7 @@ One major class of encrypted databases relies on client-side processing, where q
 
 An alternative approach attempts to split query execution between the client and the server, as seen in earlier information-hiding systems~\cite{hhaci_sigmod02}. In this model, server-side filters retrieve encrypted tuples guided by secure indices or cryptographic tokens generated by the client. Building upon this paradigm, systems like CryptDB~\cite{popa2011cryptdb}, Arx~\cite{arx_vldb19}, and Symmetria~\cite{symmetria_vldb20} explore different structural trade-offs between query functionality and data leakage. They employ layered encryption onions, partitioned data encodings, or specialized cryptographic circuits to evaluate relational predicates. However, these designs frequently leak access patterns or require multiple rounds of network interaction, as the server must often return intermediate candidate sets for the client to decrypt, refine, and re-upload.
 
-More recently, homomorphic encryption has been integrated directly into encrypted database systems to compute over ciphertexts without continuous client intervention. For instance, Symmetria~\cite{symmetria_vldb20} utilizes multiplicative homomorphic encryption combined with additive extensions, whereas Rache~\cite{otawose_sigmod23} leverages layout-aware ciphertext placement alongside SIMD-optimized key switching techniques. Additional efforts from the applied cryptography community, such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384}, introduce new arithmetic and logic operators to accelerate SQL evaluations over ciphertexts. However, these solutions often manifest as standalone programmatic scripts rather than being fully integrated into a standard relational database engine. Furthermore, to mitigate the extreme performance penalties and noise growth of FHE, recent query engines like NSHEDB~\cite{jung2026nshedbnoisesensitivehomomorphicencrypted} rely on word-level leveled homomorphic encryption. Despite these cryptographic advances, existing homomorphic databases typically operate on scalar records, encrypting individual database attributes into isolated ciphertexts. This scalar approach fails to exploit the parallel processing capabilities of modern FHE schemes, leading to substantial storage inflation and computational bottlenecks during query execution. 
+More recently, homomorphic encryption has been integrated directly into encrypted database systems to compute over ciphertexts without continuous client intervention. For instance, Symmetria~\cite{symmetria_vldb20} utilizes multiplicative homomorphic encryption combined with additive extensions, whereas Rache~\cite{otawose_sigmod23} leverages layout-aware ciphertext placement alongside SIMD-optimized key switching techniques. Additional efforts from the applied cryptography community, such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384}, introduce new arithmetic and logic operators to accelerate SQL evaluations over ciphertexts. However, these solutions often manifest as standalone programmatic scripts rather than being fully integrated into a standard relational database engine. Furthermore, to mitigate the extreme performance penalties and noise growth of FHE, recent query engines like NSHEDB~\cite{jung2026nshedbnoisesensitivehomomorphicencrypted} rely on word-level leveled homomorphic encryption. Despite these cryptographic advances, existing homomorphic databases typically operate on scalar records, encrypting individual database attributes into isolated ciphertexts. This scalar approach fails to exploit the parallel processing capabilities of modern FHE schemes, leading to storage inflation and computational bottlenecks during query execution. 
 
 Hermes differs from prior systems by integrating homomorphic encryption directly into the ingestion path.
 Unlike approaches that rely on client-side ciphertext generation or immutable payload storage, Hermes exposes SQL-level UDFs for packing, encrypting, and mutating ciphertexts at runtime.
@@ -227,19 +229,17 @@ Another prominent paradigm involves Secure Multi-party Computation and federated
 
 We summarize key terms and notation used throughout this paper. Let $n$ denote the number of slots supported by the plaintext modulus and ring parameters of the BFV encryption scheme. All vectors are implicitly assumed to be over $\mathbb{Z}_t^n$, where $t$ is the plaintext modulus.
 
-\begin{itemize}
-  \item \textbf{Slot:} Each ciphertext encodes a vector of $n$ plaintext elements, known as \emph{slots}. Slots are independently addressable under SIMD operations supported by BFV.
+\paragraph{Slot} Each ciphertext encodes a vector of $n$ plaintext elements, known as \emph{slots}. Slots are independently addressable under SIMD operations supported by BFV.
 
   % \item \textbf{Ciphertext:} A ciphertext $c \in \mathcal{C}$ is a BFV-encoded object that homomorphically encrypts $[m_0, \dots, m_{n-1}]$ for some plaintext values $m_i \in \mathbb{Z}_t$. Ciphertexts may undergo operations such as addition, multiplication, and automorphic permutation.
 
-  \item \textbf{Group ID:} In Hermes, input tuples are partitioned by a logical \emph{group ID}, which assigns each record to a packed vector instance. All records within the same group are encoded into the same ciphertext. The mapping from record to group is deterministic and index-driven.
+\paragraph{Group ID} In Hermes, input tuples are partitioned by a logical \emph{group ID}, which assigns each record to a packed vector instance. All records within the same group are encoded into the same ciphertext. The mapping from record to group is deterministic and index-driven.
 
-  \item \textbf{Auxiliary Sum Slot:} Hermes reserves the final slot (slot $n{-}1$) in each ciphertext to store the \emph{local sum}, i.e., the plaintext sum $\sum_{j=0}^{n-2} m_j$ of all payload slots. This value is computed at packing time and used to accelerate encrypted aggregation without Galois rotation.
+\paragraph{Auxiliary Sum Slot} Hermes reserves the final slot (slot $n{-}1$) in each ciphertext to store the \emph{local sum}, i.e., the plaintext sum $\sum_{j=0}^{n-2} m_j$ of all payload slots. This value is computed at packing time and used to accelerate encrypted aggregation without Galois rotation.
 
-  \item \textbf{Packed Representation:} A ciphertext that stores $n{-}1$ application values and one auxiliary statistic is referred to as a \emph{packed representation}. This format enables efficient updates and aggregation via SIMD-aware primitives.
+\paragraph{Packed Representation} A ciphertext that stores $n{-}1$ application values and one auxiliary statistic is referred to as a \emph{packed representation}. This format enables efficient updates and aggregation via SIMD-aware primitives.
 
-  \item \textbf{Logical Length:} Some plaintext vectors do not occupy all $n$ slots. The number of meaningful entries is called the \emph{logical length}, and is used to control serialization, summation, and slot masking operations.
-\end{itemize}
+\paragraph{Logical Length} Some plaintext vectors do not occupy all $n$ slots. The number of meaningful entries is called the \emph{logical length}, and is used to control serialization, summation, and slot masking operations.
 
 \section{Hermes: FHE Layer for Vectorized Tuples}
 
@@ -501,9 +501,9 @@ Managing state within the MySQL UDF framework requires careful engineering. To p
 
 To ensure predictable memory usage and interoperation with the MySQL engine, each ciphertext object is allocated directly on the C++ heap and remains entirely opaque to the database. Rather than serializing ciphertexts into bulky binary blobs for storage in relational tables, Hermes returns a lightweight diagnostic string back to the SQL context. This string contains the memory address of the ciphertext formatted as a hexadecimal pointer, a plaintext verification value obtained via local decryption, and the object size derived from the C++ \texttt{sizeof} operator. For example, an encrypted tuple vector might yield a database cell value resembling \texttt{0x7ffee31b2ac0 (sum = 13200, size = 128)}.
 
-Internally, all ciphertexts are instantiated using the polymorphic type system provided by OpenFHE, specifically relying on the \texttt{Ciphertext<DCRTPoly>} class. This type encapsulates a leveled ciphertext vector over RNS encoded polynomial rings. While OpenFHE provides comprehensive APIs for deep object serialization, Hermes bypasses these mechanisms to minimize dependencies on runtime I/O and reduce memory copying overhead during query execution.
+Internally, all ciphertexts are instantiated using the polymorphic type system provided by OpenFHE, specifically relying on the \texttt{Ciphertext<DCRTPoly>} class. This type encapsulates a leveled ciphertext vector over RNS encoded polynomial rings. While OpenFHE provides comprehensive APIs for deep object serialization, Hermes bypasses these mechanisms to minimize dependencies on runtime I/O and reduce memory overhead during execution.
 
-Consequently, the SQL facing UDFs operate by passing these hexadecimal pointer strings between functions. When operations such as \texttt{HERMES\_PACK\_CONVERT()} are invoked in a query, the plugin parses the string to recover the memory address, safely casts it back to a \texttt{Ciphertext<DCRTPoly>} pointer, and performs the requested homomorphic evaluation directly in memory. This pointer based memory lifecycle ensures that the heavy cryptographic objects never cross the foreign function interface boundary, keeping the SQL engine lightweight and avoiding unnecessary deserialization penalties.
+Consequently, the SQL facing UDFs operate by passing these hexadecimal pointer strings between functions. When operations such as \texttt{HERMES\_PACK\_CONVERT()} are invoked in a query, the plugin parses the string to recover the memory address, safely casts it back to a \texttt{Ciphertext<DCRTPoly>} pointer, and performs the requested homomorphic evaluation directly in memory. This pointer based memory lifecycle ensures that the heavy cryptographic objects never cross the foreign function interface boundary, keeping the SQL engine lightweight and avoiding deserialization penalties.
 
 \subsection{Encrypted Aggregate Query}
 
@@ -521,11 +521,13 @@ Furthermore, the update implementation enforces bounds checking to maintain memo
 
 At the code level, the C++ implementation ensures that all execution paths remain entirely data oblivious. The sequence of OpenFHE API calls, such as \texttt{EvalRotate} and \texttt{EvalMult}, is determined solely by the public slot indices and the dimensions of the generated plaintext masks. The plugin avoids any conditional branching or loop terminations predicated on the decrypted contents of the vectors. This strict separation guarantees that the runtime execution profile of the update UDFs leaks no information about the underlying encrypted database records.
 
-\subsection{Decryption Interface and Result Extraction}
+\subsection{Result Extraction and Decryption Interface}
 
-The decryption interface in Hermes operates entirely within the MySQL server process and is exposed via dedicated read-only UDFs. The execution workflow initiates when the SQL engine passes a hexadecimal string handle to the decryption function. The C++ plugin parses this string to resolve the memory address and performs strict pointer validation to confirm alignment with the expected OpenFHE \texttt{Ciphertext<DCRTPoly>} memory layout.
+In a production deployment, Hermes strictly adheres to the standard threat model of fully homomorphic encryption, ensuring that the secret key resides exclusively on the trusted client. The MySQL server is only responsible for evaluating the queries and returning either the memory pointers or the serialized payloads of the resulting ciphertexts. The client application then performs the decryption locally. This architecture guarantees that the database engine never has access to the plaintext records or the secret key.
 
-Once the pointer is validated, the plugin invokes the OpenFHE \texttt{Decrypt} API using the resident secret key. The decrypted output is subsequently converted into a standard C++ vector using the \texttt{SetLength} and \texttt{GetPackedValue} methods. To minimize memory copying and adhere to the strict scalar return requirements of the MySQL FFI, the plugin logic extracts only the specifically requested integer slot, avoiding the construction of oversized response buffers.
+However, to facilitate rigorous performance profiling and isolate the cryptographic latency from network overhead, Hermes provides a localized decryption harness strictly for benchmarking purposes. This evaluation interface operates entirely within the MySQL server process and is exposed via dedicated read only UDFs. The execution workflow initiates when the SQL engine passes a hexadecimal string handle to the decryption function. The C++ plugin parses this string to resolve the memory address and performs strict pointer validation to confirm alignment with the expected OpenFHE \texttt{Ciphertext<DCRTPoly>} memory layout.
+
+When operating in this testing mode, the plugin invokes the OpenFHE \texttt{Decrypt} API using a resident evaluation key provisioned solely for experimental environments. The decrypted output is subsequently converted into a standard C++ vector using \texttt{SetLength} and \texttt{GetPackedValue}. To minimize memory copying and adhere to the strict scalar return requirements of the MySQL FFI, the plugin logic extracts only the specifically requested integer slot, avoiding the construction of oversized response buffers.
 
 The extracted scalar is then formatted and safely written into the UDF return buffer. To ensure robustness against malformed queries, the implementation enforces strict bounds checking on the requested slot index. If the database client attempts to access an out-of-bounds index, the C++ routine aborts the extraction, yields a \texttt{NULL} result to the SQL context, and emits a diagnostic warning to the server error log. Additionally, all decryption operations are engineered to be strictly read-only, guaranteeing that the underlying ciphertext objects remain immutable and safe for concurrent query evaluations.
 
@@ -549,20 +551,20 @@ A particularly subtle issue involves the generation and use of Galois keys for s
 All experiments are conducted on a Dell PowerEdge R6525 server provisioned via the CHI@UC Chameleon testbed~\cite{chameleoncloud}. The compute node is equipped with dual AMD EPYC 7763 processors operating at 2.45GHz, providing a total of 128 physical cores and 256 hardware threads, alongside 512GB of memory. The system runs on Ubuntu 24.04 LTS and utilizes MySQL version 8.0.42 as the underlying relational database engine. The homomorphic cryptographic operations are implemented using OpenFHE version 1.2.4 configured with the BFV scheme. For all evaluations, we establish the encryption context using a default ring dimension of $N=2^{14}$ and a plaintext modulus of $t=2^{16}$, which yields exactly $n=8192$ plaintext slots per ciphertext for vectorized execution.
 
 % Optional table with datasets
-\begin{table}[!t]
-\centering
-\caption{Summary of evaluation datasets}
-\label{tab:datasets}
-\begin{tabular}{lccr}
-\toprule
-\textbf{Dataset} & \textbf{Domain} & \textbf{\#Tuples} & \textbf{Value Range} \\
-\midrule
-COVID-19~\cite{covid19data} & Healthcare & 341 & $\sim$[0, 100k] \\
-hg38~\cite{hg_data}     & Genomics     & 34,424 & $\sim$[0, 10k] \\
-Bitcoin~\cite{bitcoin_trade}  & Finance    & 1,086 & $\sim$[0, $2^{31}$] \\
-\bottomrule
-\end{tabular}
-\end{table}
+% \begin{table}[!t]
+% \centering
+% \caption{Summary of evaluation datasets}
+% \label{tab:datasets}
+% \begin{tabular}{lccr}
+% \toprule
+% \textbf{Dataset} & \textbf{Domain} & \textbf{\#Tuples} & \textbf{Value Range} \\
+% \midrule
+% COVID-19~\cite{covid19data} & Healthcare & 341 & $\sim$[0, 100k] \\
+% hg38~\cite{hg_data}     & Genomics     & 34,424 & $\sim$[0, 10k] \\
+% Bitcoin~\cite{bitcoin_trade}  & Finance    & 1,086 & $\sim$[0, $2^{31}$] \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
 
 We evaluate Hermes on three real-world datasets that represent diverse application domains and data distributions, summarized in Table~\ref{tab:datasets}. The \textit{COVID-19} dataset contains 341 daily records of pandemic-related statistics in the U.S., such as hospitalizations and case counts. The \textit{hg38} dataset corresponds to genomic annotations in the human reference genome, consisting of over 34,000 entries such as transcription start sites and exon counts. The \textit{Bitcoin} dataset records cryptocurrency trade volumes on a 3-day interval from 2013 to 2022. Since raw Bitcoin trade values are extremely large, we apply a rescaling factor of $1/24$ to obtain minute-level approximations before encryption.
 All datasets are stored as single-attribute tables in a MySQL database. Hermes operates over these tables using only SQL-based UDFs, without modifying schema definitions or client-side logic. We use a packing size of 8192 slots throughout all experiments, and all queries are executed on a single-node MySQL server with OpenFHE v1.2.4.
@@ -573,13 +575,20 @@ For the end-to-end evaluations within MySQL, we compare Hermes against a Singula
 
 To isolate our algorithmic improvements from the inherent execution overhead of the database engine, we implement two additional baselines as standalone C++ microbenchmarks. The first is a Standard Packed FHE baseline, which utilizes the same multi-slot ciphertext layout as Hermes but relies on the conventional sequence of logarithmic Galois rotations and masking operations to compute aggregate sums. This comparison isolates the latency reduction achieved specifically by our auxiliary local sum embedding technique. The second microbenchmark employs the Paillier cryptosystem~\cite{paillier1999}, representing the traditional Partially Homomorphic Encryption (PHE) standard for secure database aggregations. Because Paillier supports only scalar additive homomorphism, this evaluation demonstrates how the vectorized parallelism of modern FHE outpaces legacy scalar schemes in analytical throughput.
 
-To guide the remainder of our evaluation, we structure our experiments around four core research questions (RQs):
+We structure experiments around four research questions (RQs):
 \begin{itemize}
     \item RQ1: How does the vectorized packing data model improve initial data ingestion and encryption throughput compared to singular tuple encryption? We address this in Section~\ref{sec:eval_encryption}.
     \item RQ2: What is the computational latency of performing secure in-place modifications such as record insertions and deletions over packed ciphertexts? We explore this in Section~\ref{sec:eval_update}.
     \item RQ3: How does the auxiliary local-sum embedding technique perform against traditional cryptographic aggregation queries in isolated microbenchmarks? We answer this in Section~\ref{sec:eval_microbenchmarks}.
     \item RQ4: How does the logical group capacity influence the overall execution latency across different relational operators? We analyze this in Section~\ref{sec:eval_scalability}.
 \end{itemize}
+
+\subsection{Scope of Comparison} 
+
+While several homomorphic prototypes such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384} exist, we exclude them from empirical comparison for two reasons. First, these works typically function as standalone programmatic scripts rather than being integrated into the execution pipeline of a production-grade DBMS. Second, Hermes prioritizes strict IND-CPA security without any access pattern leakage, whereas those alternatives rely on interactive protocols or property-preserving encryption that inherently weaken the threat model. Thus, we benchmark against Intel IPCL~\cite{ipcl_github} and OpenFHE~\cite{openfhe} to establish a baseline using identical cryptographic security levels.
+
+The current evaluation focuses on single-attribute analytical workloads, as these represent the primary computational bottleneck for integrating FHE into relational engines. 
+By establishing a high-performance foundation for atomic relational operators, we demonstrate the practical feasibility of encrypted query processing.
 
 \subsection{Encryption Throughput}
 \label{sec:eval_encryption}
@@ -597,7 +606,7 @@ To answer RQ1, we evaluate the initial data ingestion performance by focusing st
 
 The Singular FHE baseline forces the database to generate an independent ciphertext for every single tuple. As shown in Figure~\ref{fig:encryption}(c), encrypting the hg38 dataset tuple by tuple consumes over 4048 seconds, yielding a slow throughput of merely 8 tuples per second. By contrast, Hermes leverages the SIMD capabilities of the BFV scheme to pack multiple relational tuples into a single ciphertext. Even under the most conservative structural configuration of 128 slots, the encryption time for hg38 drops to 35 seconds, boosting the throughput to 958 tuples per second.
 
-When operating at the optimal packing scale of 4096 slots, Hermes reduces the total encryption time for hg38 to 1.2 seconds. The overlaid throughput trajectory highlights this dramatic efficiency gain, revealing a high processing rate of 27783 tuples per second. Similar computational boundaries are observed in the Bitcoin and COVID-19 datasets. These measurements confirm that the vectorized data model successfully reduces the fundamental throughput bottleneck of applying homomorphic encryption to relational database systems.
+When operating at the optimal packing scale of 4096 slots, Hermes reduces the total encryption time for hg38 to 1.2 seconds. The overlaid throughput trajectory highlights this dramatic efficiency gain, revealing a high processing rate of 27783 tuples per second, which translates to a staggering 3472x speedup over the singular encryption baseline. Similar computational boundaries are observed in the Bitcoin and COVID-19 datasets. These measurements confirm that the vectorized data model successfully reduces the fundamental throughput bottleneck of applying homomorphic encryption to relational database systems.
 
 \subsection{In-Place Update Latency}
 \label{sec:eval_update}
@@ -624,7 +633,7 @@ To answer RQ2, we evaluate the system performance for in-place data modification
 
 Figure~\ref{fig:insert} presents the amortized latency for insertion operations. The Singular FHE baseline exhibits a severe bottleneck, requiring approximately 124 milliseconds to insert a single tuple. This delay stems from the mathematical requirement to generate a complete polynomial ciphertext for every isolated record. Hermes leverages the SIMD slots to distribute this cryptographic overhead. Under the optimal configuration of Hermes-4096, the amortized insertion time is reduced to approximately 0.03 milliseconds per tuple. This structural advantage translates to an over 4000x speedup for the Bitcoin dataset and similar gains across the other workloads.
 
-Figure~\ref{fig:remove} illustrates the performance of deletion operations. In the Singular FHE system, a deletion is a direct SQL drop operation requiring merely 4 milliseconds. Hermes cannot physically drop rows within a packed ciphertext and must instead execute homomorphic masking to erase specific slots. Although a single packed deletion takes around 54 milliseconds to compute, amortizing this operation across 4096 slots yields an effective latency of 0.013 milliseconds per tuple. As highlighted by the overlaid metrics, this results in a 369x speedup over the singular approach for the hg38 dataset. Other two datasets show similar trends, leading to speedups around 300x.
+Figure~\ref{fig:remove} illustrates the performance of deletion operations. In the Singular FHE system, a deletion is a direct SQL drop operation requiring merely 4 milliseconds. Hermes cannot physically drop rows within a packed ciphertext and must instead execute homomorphic masking to erase specific slots. Although a single packed deletion takes around 54 milliseconds to compute, amortizing this operation across 4096 slots yields an effective latency of 0.013 milliseconds per tuple. As highlighted by the overlaid metrics, this results in a 369x speedup over the singular approach for the hg38 dataset. Other two datasets show similar trends with speedups around 300x.
 
 These empirical results validate that the SIMD packing design does not degrade the practical update performance. By amortizing the cryptographic polynomial operations across thousands of relational tuples, Hermes successfully maintains sub-millisecond effective latencies for both insertions and deletions.
 
@@ -637,7 +646,8 @@ All benchmarks are executed with $N=2^{14}$ and $t=65537$, yielding 8192 slots.
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\linewidth]{fig/eval_microbenchmarks.pdf}
-\caption{Cryptographic microbenchmarks comparing (a) vector-add throughput against Intel-accelerated Paillier and (b) Hermes rotation-free aggregation against the standard logarithmic-rotation FHE baseline. 
+\caption{Cryptographic query microbenchmarks.
+%  comparing (a) vector-add throughput against Intel-accelerated Paillier and (b) Hermes rotation-free aggregation against the standard logarithmic-rotation FHE baseline. 
 % Both vertical axes use a logarithmic scale.
 }
 \label{fig:microbenchmarks}
@@ -668,14 +678,18 @@ Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship betwee
 Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) reveal that the performance of in-place modifications remains entirely decoupled from the packing scale. The time required to perform 100 insertions or 100 deletions stays roughly constant across all scales. Specifically, the batch insertions stabilize at approximately 12.6 seconds, while the corresponding deletions take about 5.4 seconds. 
 This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent data modifications.
 
-\section{Conclusion and Future Work}
+\section{Conclusion}
 \label{sec:conclusion}
 
-\don{TODO}
+This paper presented Hermes, a fully homomorphic encrypted database subsystem that bridges the structural divide between relational data models and algebraic cryptographic circuits. By introducing a vectorized packing strategy with embedded auxiliary statistics, Hermes transforms homomorphic aggregation from an operation scaling logarithmically with rotations into a constant-time addition. Furthermore, the development of data-oblivious masking and shifting algorithms enables secure in-place modifications, completely eliminating the need for client-side decryption or re-encryption during routine database maintenance.
 
-% \section*{Acknowledgments}
+% The core contribution of this work extends beyond algorithmic optimizations to demonstrate the first practical integration of Fully Homomorphic Encryption within an industrial grade relational database engine. Rather than relying on isolated research prototypes or proxy architectures, Hermes is implemented natively as MySQL loadable functions. Our extensive evaluation against production-ready cryptographic standards, specifically OpenFHE and the Intel Paillier Cryptosystem Library, establishes a new bar for encrypted systems. The empirical results reveal transformative performance enhancements, including an over 3400x improvement in encryption throughput, alongside staggering speedups of over 4000x for tuple insertions and 300x for deletions. These extreme performance gains, achieving sub millisecond amortized latencies, elevate fully homomorphic encryption from theoretical feasibility to practical deployability for real-world cloud infrastructure.
 
-% Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
+While Hermes currently focuses on single-attribute aggregation and point mutability, the underlying vectorized architecture is designed to be extensible. Our future work includes implementing multi-column ciphertext layouts and homomorphic join operators by leveraging the established SIMD infrastructure to support the full range of relational algebra.
+
+\section*{Acknowledgments}
+
+Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{ref}
