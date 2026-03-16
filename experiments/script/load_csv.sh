@@ -1,4 +1,29 @@
 #!/bin/bash
+
+# ==============================================================================
+# @file load_csv.sh
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Automated data ingestion script for the Hermes MySQL environment.
+#
+# @details
+# This script manages the lifecycle of experimental data within the MySQL 
+# database engine. It ensures the target database exists, configures the 
+# server to allow local data loading, and performs high speed bulk imports 
+# of preprocessed CSV files. Each table is structured with the specific 
+# schema required for Hermes operations, including a group identifier for 
+# packed homomorphic encryption. By using the LOAD DATA LOCAL INFILE 
+# command, it provides an efficient pathway to populate the relational 
+# engine with large datasets such as Bitcoin, COVID19, and genomic records.
+#
+# @dependencies
+# * MySQL Server : Requires local_infile permissions to be enabled.
+# * Preprocessed CSVs : Files must exist in the $HOME/hpdic/Hermes/tmp/ directory.
+#
+# @usage
+# bash import_data.sh
+# ==============================================================================
+
 set -e
 
 export MYSQL_PWD="hpdic2023"

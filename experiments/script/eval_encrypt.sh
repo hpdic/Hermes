@@ -1,4 +1,31 @@
 #!/bin/bash
+
+# ==============================================================================
+# @file eval_encrypt.sh
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Evaluates the throughput of the Hermes SIMD packed encryption mechanism.
+#
+# @details
+# This script measures the performance of converting raw plaintext data into
+# packed homomorphic ciphertexts using the HERMES_PACK_CONVERT user defined
+# function. It aggregates records by their pre calculated group identifier
+# and processes them in batches. The script dynamically adapts to different
+# pack sizes and outputs detailed latency metrics, including average execution
+# time per row, to a dedicated structured results directory.
+#
+# @parameters
+# * table : The target database table to encrypt. Defaults to tbl_bitcoin.
+# * pack : The number of slots per packed ciphertext. Defaults to 128.
+#
+# @dependencies
+# * MySQL Server : Actively running with the hermes_apps database.
+# * HERMES_PACK_CONVERT : The registered UDF for packed encryption.
+#
+# @usage
+# bash eval_encrypt.sh --table tbl_bitcoin --pack 1024
+# ==============================================================================
+
 set -e
 
 export MYSQL_PWD='hpdic2023'

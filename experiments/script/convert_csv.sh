@@ -1,4 +1,34 @@
 #!/bin/bash
+
+# ==============================================================================
+# @file convert_csv.sh
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Data preprocessing and CSV conversion script for Hermes evaluations.
+#
+# @details
+# This utility transforms raw experimental datasets into structured CSV files 
+# tailored for the Hermes database ingestion pipeline. It cleans the raw input 
+# by stripping non numeric characters and rounding floating point values to 
+# integers. Every record is sequentially assigned a unique identifier and a 
+# group identifier. The group identifier is calculated mathematically based on 
+# the provided pack size parameter. This ensures the data aligns perfectly for 
+# vectorized homomorphic encryption batching.
+#
+# @parameters
+# * pack_size (optional): The number of data rows to bundle into a single 
+#   encryption group. Defaults to 4096. The absolute maximum limit is 8192.
+#
+# @dependencies
+# * awk: Required for high performance stream parsing and mathematical rounding.
+#
+# @usage
+# bash convert_csv.sh [pack_size]
+#
+# @example
+# bash convert_csv.sh 1024
+# ==============================================================================
+
 set -e
 
 echo "[*] Converting raw data to CSV format..."

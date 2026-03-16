@@ -1,4 +1,32 @@
 #!/bin/bash
+
+# ==============================================================================
+# @file eval_baseline.sh
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Measures baseline performance for singular FHE and plaintext operations.
+#
+# @details
+# This script establishes the baseline performance metrics by executing
+# traditional scalar homomorphic encryption operations alongside standard
+# plaintext database queries. It creates temporary tables to isolate
+# the testing environment and evaluates three primary database workloads:
+# bulk encryption, record insertion, and record deletion. The results
+# serve as the unoptimized comparative foundation for evaluating the
+# throughput improvements of the Hermes SIMD packed architecture.
+#
+# @parameters
+# * table : Specifies the target database table for baseline testing.
+#           Defaults to tbl_bitcoin.
+#
+# @dependencies
+# * MySQL Server : Configured with the hermes_apps database.
+# * HERMES_ENC_SINGULAR : The registered UDF for scalar encryption.
+#
+# @usage
+# bash eval_baseline.sh --table tbl_bitcoin
+# ==============================================================================
+
 set -e
 
 export MYSQL_PWD='hpdic2023'

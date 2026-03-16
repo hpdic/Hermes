@@ -1,3 +1,65 @@
+/**
+ * @file benchmark.cpp
+ * @author Dongfang Zhao (dzhao@uw.edu)
+ * * @brief Micro-benchmark evaluating homomorphic addition and aggregation 
+ * performance across Paillier (IPCL), standard FHE (OpenFHE), and Hermes.
+ *
+ * @details
+ * This program isolates the core cryptographic operations from the database engine 
+ * to compare the execution time of various homomorphic algorithms across different 
+ * vector slot scales (from 128 to 8192 slots). It initializes both Intel's Paillier 
+ * Cryptosystem Library (IPCL) and OpenFHE (BFVRNS scheme) and evaluates four 
+ * specific execution paths:
+ * * 1. Paillier Add: Element-wise scalar addition simulating standard iteration 
+ * without SIMD support. Scales linearly with the number of slots.
+ * 2. Hermes SIMD Add: Vectorized addition leveraging packed FHE ciphertexts 
+ * to process multiple slots via single instruction multiple data (SIMD).
+ * 3. Standard FHE Aggregation: Traditional FHE aggregation requiring O(log N) 
+ * computationally expensive Galois rotations and additions.
+ * 4. Hermes Rotation-Free Aggregation: O(1) aggregation utilizing Hermes's 
+ * pre-computed auxiliary aggregate slot, bypassing rotational overhead.
+ * * @dependencies
+ * - OpenFHE (v1.0.0+)
+ * - Intel Paillier Cryptosystem Library (IPCL)
+ * - OpenMP (Required for IPCL acceleration)
+ *
+ * @section Compilation & Execution
+ * @code
+ * # 1. Compile the benchmark
+ * g++ -std=c++17 benchmark.cpp -o benchmark.out \
+ * -I/home/cc/hpdic/pailliercryptolib/ipcl/include \
+ * -I/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/include \
+ * -I/usr/local/include/openfhe \
+ * -I/usr/local/include/openfhe/core \
+ * -I/usr/local/include/openfhe/pke \
+ * -I/usr/local/include/openfhe/binfhe \
+ * -L/home/cc/hpdic/pailliercryptolib/build/ipcl \
+ * -L/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/lib/intel64 \
+ * -L/usr/local/lib \
+ * -lipcl -lippcp -lcrypto -lOPENFHEpke -lOPENFHEcore -fopenmp
+ * * # 2. Export library paths
+ * export LD_LIBRARY_PATH=/home/cc/hpdic/pailliercryptolib/build/ipcl:/home/cc/hpdic/pailliercryptolib/build/ext_ipp-crypto/ippcrypto_install/opt/intel/ipcl/lib/intel64:/usr/local/lib:$LD_LIBRARY_PATH
+ * * # 3. Execute
+ * ./benchmark.out
+ * @endcode
+ * * @section Example Output
+ * @code
+ * Initializing FHE and IPCL parameters...
+ * Starting multi-scale benchmark...
+ * * --- Testing Scale: 128 Slots ---
+ * Paillier Add: 1.94735 ms
+ * Hermes SIMD Add: 1.72359 ms
+ * Standard FHE Aggregation: 630.192 ms
+ * Hermes Rotation-Free Aggregation: 1.58602 ms
+ * * ... [Intermediate scales omitted for brevity] ...
+ * * --- Testing Scale: 8192 Slots ---
+ * Paillier Add: 120.567 ms
+ * Hermes SIMD Add: 1.56857 ms
+ * Standard FHE Aggregation: 1165.94 ms
+ * Hermes Rotation-Free Aggregation: 1.57973 ms
+ * @endcode
+ */
+
 #include <iostream>
 #include <chrono>
 #include <vector>

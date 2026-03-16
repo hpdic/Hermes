@@ -1,4 +1,33 @@
 #!/bin/bash
+
+# ==============================================================================
+# @file eval_insert.sh
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Evaluates the throughput of the Hermes packed slot insertion mechanism.
+#
+# @details
+# This script measures the performance of inserting new records directly into 
+# existing packed homomorphic ciphertexts. It isolates a specific group of 
+# records, converts them into a packed format, and sequentially appends one 
+# hundred new randomly generated values into the available ciphertext slots 
+# using the HERMES_PACK_ADD user defined function. The script strictly tracks 
+# the slot count to ensure data alignment and outputs detailed latency metrics 
+# to a dedicated structured results directory.
+#
+# @parameters
+# * table : The target database table to evaluate. Defaults to tbl_bitcoin.
+# * pack : The maximum capacity of slots per packed ciphertext. Defaults to 128.
+#
+# @dependencies
+# * MySQL Server : Actively running with the hermes_apps database.
+# * HERMES_PACK_ADD : The registered UDF for in place packed slot insertion.
+# * HERMES_PACK_CONVERT : The registered UDF for initial packed encryption setup.
+#
+# @usage
+# bash eval_insert.sh --table tbl_bitcoin --pack 1024
+# ==============================================================================
+
 set -e
 
 export MYSQL_PWD='hpdic2023'

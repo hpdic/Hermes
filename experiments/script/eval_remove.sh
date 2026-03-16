@@ -1,4 +1,33 @@
 #!/bin/bash
+
+# ==============================================================================
+# @file eval_remove.sh
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Evaluates the throughput of the Hermes packed slot deletion mechanism.
+#
+# @details
+# This script measures the performance of removing records from within existing 
+# packed homomorphic ciphertexts. It leverages the HERMES_PACK_RMV user defined 
+# function to perform data oblivious deletions, which involve complex slot 
+# masking and shifting operations to maintain the integrity of the remaining 
+# data slots. The script simulates a workload of one hundred randomized 
+# deletions, dynamically tracking the decreasing slot count to maintain 
+# mathematical consistency. Latency metrics are recorded and averaged to 
+# demonstrate the efficiency of Hermes's in place modification algorithms.
+#
+# @parameters
+# * table : The target database table to evaluate. Defaults to tbl_bitcoin.
+# * pack : The maximum capacity of slots per packed ciphertext. Defaults to 128.
+#
+# @dependencies
+# * MySQL Server : Actively running with the hermes_apps database.
+# * HERMES_PACK_RMV : The registered UDF for data oblivious slot removal.
+#
+# @usage
+# bash eval_remove.sh --table tbl_bitcoin --pack 1024
+# ==============================================================================
+
 set -e
 
 export MYSQL_PWD='hpdic2023'
