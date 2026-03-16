@@ -120,6 +120,8 @@ In Summary, this paper makes the following contributions:
 
 \section{Related Work and Preliminaries}
 
+\don{Add NSHEDB and its related work}
+
 \subsection{Encrypted Databases}
 
 One major class of encrypted databases relies on client-side processing, where query execution is deferred until the encrypted data is downloaded to a trusted local environment~\cite{akavia_sec23}. While this architecture strictly minimizes trust assumptions by keeping all analytical logic away from the cloud provider, it inherently sacrifices the computational benefits of server-side scalability. Transferring large volumes of encrypted records across the network incurs severe bandwidth penalties and high latency, effectively reducing the cloud database management system to a passive storage repository rather than an active execution engine.
@@ -542,6 +544,10 @@ which matches the true plaintext sum across all tuples.
 
 \section{System Implementation}
 
+\don{remove content that is duplicate of the previous section.}
+
+\don{Update source code with head comments and update the lines of code in the following.}
+
 We implement \textsc{Hermes} as a suite of MySQL loadable functions written in C++ with OpenFHE v1.2.4. The system consists of modular components for slot-wise packing, homomorphic insertion and deletion, local-sum-aware aggregation, and slot-selective decryption, all of which are executed natively within the MySQL runtime.
 
 As of March 2026, the codebase comprises 3,518 lines of code: including 2,045 lines of C++ core logic and the remainder for various scripts (e.g., Bash, Python, CMake). All components are implemented in C++ and compiled into dynamic libraries registered as MySQL UDFs. Our minimalist integration strategy avoids any modification to the MySQL source code or query engine internals. The full source code is publicly available on Github.
@@ -721,7 +727,7 @@ To guide the remainder of our evaluation, we structure our experiments around fo
 \begin{itemize}
     \item RQ1: How does the vectorized packing data model improve initial data ingestion and encryption throughput compared to singular tuple encryption? We address this in Section~\ref{sec:eval_encryption}.
     \item RQ2: What is the computational latency of performing secure in-place modifications such as record insertions and deletions over packed ciphertexts? We explore this in Section~\ref{sec:eval_update}.
-    \item RQ3: How does the auxiliary local-sum embedding technique perform against traditional cryptographic aggregation methods in isolated microbenchmarks? We answer this in Section~\ref{sec:eval_microbenchmarks}.
+    \item RQ3: How does the auxiliary local-sum embedding technique perform against traditional cryptographic aggregation queries in isolated microbenchmarks? We answer this in Section~\ref{sec:eval_microbenchmarks}.
     \item RQ4: How does the logical group capacity influence the overall execution latency across different relational operators? We analyze this in Section~\ref{sec:eval_scalability}.
 \end{itemize}
 
@@ -766,11 +772,11 @@ Figure~\ref{fig:remove} illustrates the performance of deletion operations. In t
 
 These empirical results validate that the SIMD packing design does not degrade the practical update performance. By amortizing the cryptographic polynomial operations across thousands of relational tuples, Hermes successfully maintains sub-millisecond effective latencies for both insertions and deletions.
 
-\subsection{Cryptographic Microbenchmarks}
+\subsection{Cryptographic Aggregation Queries}
 \label{sec:eval_microbenchmarks}
 
-To answer RQ3, we isolate the core cryptographic primitives from the database engine to evaluate the intrinsic efficiency of the Hermes data model. We focus on two critical operations: batched addition and global aggregation. All benchmarks are executed with $N=2^{14}$ and $t=65537$, yielding 8192 slots.
-
+To answer RQ3, we evaluate the performance of Hermes on aggregation queries. To isolate the intrinsic cryptographic efficiency of our data model from the inherent execution overhead of the MySQL engine, we conduct these evaluations at the core operator level. Although Hermes natively processes SQL aggregations, measuring them end-to-end would introduce parsing and scheduling artifacts that obscure the pure cryptographic throughput. Therefore, we implement this section's benchmarks as standalone C++ programs. This approach allows us to directly compare our rotation-free aggregation technique against traditional cryptographic methods under strict computational isolation.
+All benchmarks are executed with $N=2^{14}$ and $t=65537$, yielding 8192 slots.
 
 \begin{figure}[!t]
 \centering
@@ -801,6 +807,8 @@ Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship betwee
 
 Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) reveal that the performance of in-place modifications remains entirely decoupled from the packing scale. The time required to perform 100 insertions or 100 deletions stays roughly constant across all scales. Specifically, the batch insertions stabilize at approximately 12.6 seconds, while the corresponding deletions take about 5.4 seconds. 
 This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent data modifications.
+
+\don{Maybe add a new subsection to compare Hermes against NSHEDB and its related work.}
 
 % \section{Related Work}
 % \label{sec:related}
@@ -837,11 +845,7 @@ This constant time complexity is a direct manifestation of the underlying homomo
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-Hermes demonstrates that Fully Homomorphic Encryption (FHE), long regarded as a theoretical milestone, can be practically harnessed for high-throughput, SQL-compatible query processing. By redesigning how encrypted records are packed, updated, and aggregated, we show that multi-slot ciphertexts—augmented with slot-aware mutation and auxiliary metadata—enable expressive relational workloads under provable security guarantees. The system integrates with unmodified MySQL via standard UDFs and achieves performance suitable for real-world ingestion pipelines, without relying on hardware acceleration or cryptographic shortcuts.
-
-This work opens several compelling avenues for future development. At the systems level, integrating encrypted indexing mechanisms—such as order-preserving encodings, hash-based range filters, or Galois-key-aware layout strategies—would unlock efficient filtering and join operations over ciphertexts. At the data model level, generalizing the encoder to support multi-attribute layouts or nested packing schemes could enable vectorized updates across structured relational records. Finally, applying Hermes to non-relational contexts—such as embedded or streaming systems—offers an opportunity to deploy encrypted query support in latency-sensitive, resource-constrained environments.
-
-We view Hermes not as an endpoint, but as a starting point for reconciling two historically separate disciplines: secure computation and relational data management. As both encryption schemes and database engines mature, we believe the design principles behind Hermes—modular encryption, slot-aware semantics, and in-place mutability—will serve as building blocks for a broader class of secure data infrastructures. Making encrypted computation a routine part of database execution is no longer a theoretical aspiration—it is an engineering trajectory now underway.
+\don{TODO}
 
 % \section*{Acknowledgments}
 
