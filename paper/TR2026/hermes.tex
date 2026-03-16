@@ -550,11 +550,9 @@ which matches the true plaintext sum across all tuples.
 
 \don{remove content that is duplicate of the previous section.}
 
-\don{Update source code with head comments and update the lines of code in the following.}
-
 We implement \textsc{Hermes} as a suite of MySQL loadable functions written in C++ with OpenFHE v1.2.4. The system consists of modular components for slot-wise packing, homomorphic insertion and deletion, local-sum-aware aggregation, and slot-selective decryption, all of which are executed natively within the MySQL runtime.
 
-As of March 2026, the codebase comprises 3,518 lines of code: including 2,045 lines of C++ core logic and the remainder for various scripts (e.g., Bash, Python, CMake). All components are implemented in C++ and compiled into dynamic libraries registered as MySQL UDFs. Our minimalist integration strategy avoids any modification to the MySQL source code or query engine internals. The full source code is publicly available on Github.
+As of March 2026, the codebase comprises 4761 lines of code. All components are implemented in C++ and compiled into dynamic libraries registered as MySQL UDFs. Our minimalist integration strategy avoids any modification to the MySQL source code or query engine internals. The full source code is publicly available on Github.
 % \[
 % \texttt{\url{https://github.com/hpdic/hermes}}
 % \]
