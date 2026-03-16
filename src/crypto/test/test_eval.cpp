@@ -1,13 +1,13 @@
 /*
- * File: src/crypto/test/test_eval.cpp
+ * @file: src/crypto/test/test_eval.cpp
+ * @author: Dr. Dongfang Zhao (dzhao@cs.washington.edu)
+ * 
  * HERMES FHE Unit Test
  * ------------------------------------------------------------
  * This test verifies basic homomorphic evaluation operations
  * in the BFV scheme, including EvalAdd, EvalMult, EvalAddConst,
  * and EvalMultConst.
  *
- * Author: Dongfang Zhao (dzhao@cs.washington.edu)
- * Institution: University of Washington
  * Last Updated: May 29, 2025
  */
 

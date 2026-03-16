@@ -1,6 +1,8 @@
 #!/bin/bash
 #
 # File: script/run_pack.sh
+# Author: Dr. Dongfang Zhao (dzhao@cs.washington.edu)
+#
 # --------------------------------------------------------------------
 # HERMES End-to-End Test Script for Encrypted Packing and Aggregation
 #

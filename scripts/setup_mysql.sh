@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+# Author: Dr. Dongfang Zhao (dzhao@cs.washington.edu)
+#
 # --- Configuration ---
 # WARNING: Do not use hardcoded passwords in production.
 # This is suitable for local development setup only.

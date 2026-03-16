@@ -1,3 +1,26 @@
+/**
+ * @file base64.cpp
+ * @author Dongfang Zhao (dzhao@uw.edu)
+ *
+ * @brief High-performance Base64 encoding and decoding utilities for Hermes.
+ *
+ * @details
+ * This module provides the necessary serialization logic to convert binary 
+ * homomorphic ciphertexts into ASCII strings. This conversion is essential for 
+ * storing cryptographic payloads within standard SQL text columns (e.g., LONGTEXT) 
+ * and ensuring safe transmission over text-based database protocols. The 
+ * implementation uses bitwise shifting for efficient conversion between 8-bit 
+ * binary data and 6-bit Base64 indices, including standard padding support.
+ *
+ * @namespace hermes::crypto
+ * Provides a localized scope for cryptographic utility functions used 
+ * throughout the Hermes system.
+ *
+ * @dependencies
+ * - standard string and vector libraries
+ * - base64.hpp (header definition)
+ */
+
 #include "base64.hpp"
 
 namespace hermes::crypto {

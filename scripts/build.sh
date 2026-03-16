@@ -1,6 +1,8 @@
 #!/bin/bash
 # ========================================================================
 # File: script/build.sh
+# Author: Dr. Dongfang Zhao (dzhao@cs.washington.edu)
+#
 # ------------------------------------------------------------------------
 # HERMES Plugin Build, Installation, and UDF Registration Script
 #
