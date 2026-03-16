@@ -1,3 +1,225 @@
+@InProceedings{gsw13,
+author="Gentry, Craig
+and Sahai, Amit
+and Waters, Brent",
+editor="Canetti, Ran
+and Garay, Juan A.",
+title="Homomorphic Encryption from Learning with Errors: Conceptually-Simpler, Asymptotically-Faster, Attribute-Based",
+booktitle="Advances in Cryptology -- CRYPTO 2013",
+year="2013",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="75--92",
+abstract="We describe a comparatively simple fully homomorphic encryption (FHE) scheme based on the learning with errors (LWE) problem. In previous LWE-based FHE schemes, multiplication is a complicated and expensive step involving ``relinearization''. In this work, we propose a new technique for building FHE schemes that we call the approximate eigenvector method. In our scheme, for the most part, homomorphic addition and multiplication are just matrix addition and multiplication. This makes our scheme both asymptotically faster and (we believe) easier to understand.",
+isbn="978-3-642-40041-4"
+}
+
+@article{10.14778/3364324.3364331,
+author = {Eskandarian, Saba and Zaharia, Matei},
+title = {ObliDB: oblivious query processing for secure databases},
+year = {2019},
+issue_date = {October 2019},
+publisher = {VLDB Endowment},
+volume = {13},
+number = {2},
+issn = {2150-8097},
+url = {https://doi.org/10.14778/3364324.3364331},
+doi = {10.14778/3364324.3364331},
+abstract = {Hardware enclaves such as Intel SGX are a promising technology for improving the security of databases outsourced to the cloud. These enclaves provide an execution environment isolated from the hyper-visor/OS, and encrypt data in RAM. However, for applications that use large amounts of memory, including most databases, enclaves do not protect against access pattern leaks, which let attackers gain a large amount of information about the data. Moreover, the na\"{\i}ve way to address this issue, using Oblivious RAM (ORAM) primitives from the security literature, adds substantial overhead.A number of recent works explore trusted hardware enclaves as a path toward secure, access-pattern oblivious outsourcing of data storage and analysis. While these works efficiently solve specific subproblems (e.g. building secure indexes or running analytics queries that always scan entire tables), no prior work has supported oblivious query processing for general query workloads on a DBMS engine with multiple access methods. Moreover, applying these techniques individually does not guarantee that an end-to-end workload, such as a complex SQL query over multiple tables, will be oblivious. In this paper, we introduce ObliDB, an oblivious database engine design that is the first system to provide obliviousness for general database read workloads over multiple access methods.ObliDB introduces a diverse array of new oblivious physical operators to accelerate oblivious SQL queries, giving speedups of up to an order of magnitude over na\"{\i}ve ORAM. It supports a broad range of queries, including aggregation, joins, insertions, deletions and point queries. We implement ObliDB and show that, on analytics workloads, ObliDB ranges from 1.1--19x faster than Opaque, a previous oblivious, enclave-based system designed only for analytics, and comes within 2.6 x of Spark SQL, which provides no security guarantees. In addition, ObliDB supports point queries with 3--10ms latency, which is comparable to index-only trusted hardware systems, and runs over 7x faster than HIRB, a previous encryption-based oblivious index system that supports point queries.},
+journal = {Proc. VLDB Endow.},
+month = oct,
+pages = {169–183},
+numpages = {15}
+}
+
+@inproceedings{10.1145/3302424.3303982,
+author = {Volgushev, Nikolaj and Schwarzkopf, Malte and Getchell, Ben and Varia, Mayank and Lapets, Andrei and Bestavros, Azer},
+title = {Conclave: secure multi-party computation on big data},
+year = {2019},
+isbn = {9781450362818},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3302424.3303982},
+doi = {10.1145/3302424.3303982},
+abstract = {Secure Multi-Party Computation (MPC) allows mutually distrusting parties to run joint computations without revealing private data. Current MPC algorithms scale poorly with data size, which makes MPC on "big data" prohibitively slow and inhibits its practical use.Many relational analytics queries can maintain MPC's end-to-end security guarantee without using cryptographic MPC techniques for all operations. Conclave is a query compiler that accelerates such queries by transforming them into a combination of data-parallel, local cleartext processing and small MPC steps. When parties trust others with specific subsets of the data, Conclave applies new hybrid MPC-cleartext protocols to run additional steps outside of MPC and improve scalability further.Our Conclave prototype generates code for cleartext processing in Python and Spark, and for secure MPC using the Sharemind and Obliv-C frameworks. Conclave scales to data sets between three and six orders of magnitude larger than state-of-the-art MPC frameworks support on their own. Thanks to its hybrid protocols and additional optimizations, Conclave also substantially outperforms SMCQL, the most similar existing system.},
+booktitle = {Proceedings of the Fourteenth EuroSys Conference 2019},
+articleno = {3},
+numpages = {18},
+location = {Dresden, Germany},
+series = {EuroSys '19}
+}
+
+@article{10.14778/3291264.3291274,
+author = {Bater, Johes and He, Xi and Ehrich, William and Machanavajjhala, Ashwin and Rogers, Jennie},
+title = {Shrinkwrap: efficient SQL query processing in differentially private data federations},
+year = {2018},
+issue_date = {November 2018},
+publisher = {VLDB Endowment},
+volume = {12},
+number = {3},
+issn = {2150-8097},
+url = {https://doi.org/10.14778/3291264.3291274},
+doi = {10.14778/3291264.3291274},
+abstract = {A private data federation is a set of autonomous databases that share a unified query interface offering in-situ evaluation of SQL queries over the union of the sensitive data of its members. Owing to privacy concerns, these systems do not have a trusted data collector that can see all their data and their member databases cannot learn about individual records of other engines. Federations currently achieve this goal by evaluating queries obliviously using secure multiparty computation. This hides the intermediate result cardinality of each query operator by exhaustively padding it. With cascades of such operators, this padding accumulates to a blow-up in the output size of each operator and a proportional loss in query performance. Hence, existing private data federations do not scale well to complex SQL queries over large datasets.We introduce Shrinkwrap, a private data federation that offers data owners a differentially private view of the data held by others to improve their performance over oblivious query processing. Shrinkwrap uses computational differential privacy to minimize the padding of intermediate query results, achieving up to a 35X performance improvement over oblivious query processing. When the query needs differentially private output, Shrinkwrap provides a trade-off between result accuracy and query evaluation performance.},
+journal = {Proc. VLDB Endow.},
+month = nov,
+pages = {307–320},
+numpages = {14}
+}
+
+@INPROCEEDINGS{8835331,
+  author={Eskandarian, Saba and Cogan, Jonathan and Birnbaum, Sawyer and Brandon, Peh Chang Wei and Franke, Dillon and Fraser, Forest and Garcia, Gaspar and Gong, Eric and Nguyen, Hung T. and Sethi, Taresh K. and Subbiah, Vishal and Backes, Michael and Pellegrino, Giancarlo and Boneh, Dan},
+  booktitle={2019 IEEE Symposium on Security and Privacy (SP)}, 
+  title={Fidelius: Protecting User Secrets from Compromised Browsers}, 
+  year={2019},
+  volume={},
+  number={},
+  pages={264-280},
+  keywords={Browsers;Hardware;Malware;Keyboards;Servers;Side-channel attacks;Browser-Security;Trusted-I/O;Malware-protection;Hardware-enclave},
+  doi={10.1109/SP.2019.00036}}
+
+@inproceedings{10.1145/3318464.3386141,
+author = {Antonopoulos, Panagiotis and Arasu, Arvind and Singh, Kunal D. and Eguro, Ken and Gupta, Nitish and Jain, Rajat and Kaushik, Raghav and Kodavalla, Hanuma and Kossmann, Donald and Ogg, Nikolas and Ramamurthy, Ravi and Szymaszek, Jakub and Trimmer, Jeffrey and Vaswani, Kapil and Venkatesan, Ramarathnam and Zwilling, Mike},
+title = {Azure SQL Database Always Encrypted},
+year = {2020},
+isbn = {9781450367356},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3318464.3386141},
+doi = {10.1145/3318464.3386141},
+abstract = {This paper presents Always Encrypted, a recently released feature of Microsoft SQL Server that uses column granularity encryption to provide cryptographic data protection guarantees. Always Encrypted can be used to outsource database administration while keeping the data confidential from an administrator, including cloud operators. The first version of Always Encrypted was released in Azure SQL Database and as part of SQL Server 2016, and supported equality operations over deterministically encrypted columns. The second version, released as part of SQL Server 2019, uses an enclave running within a trusted execution environment to provide richer functionality that includes comparison and string pattern matching for an IND-CPA-secure (randomized) encryption scheme. We present the security, functionality, and design of Always Encrypted, and provide a performance evaluation using the TPC-C benchmark.},
+booktitle = {Proceedings of the 2020 ACM SIGMOD International Conference on Management of Data},
+pages = {1511–1525},
+numpages = {15},
+keywords = {SQL server, always encrypted, enclave, encryption, information leakage},
+location = {Portland, OR, USA},
+series = {SIGMOD '20}
+}
+
+@INPROCEEDINGS{10598104,
+  author={Zhang, Shufan and He, Xi and Kundu, Ashish and Mehrotra, Sharad and Sharma, Shantanu},
+  booktitle={2024 IEEE 40th International Conference on Data Engineering (ICDE)}, 
+  title={Secure Normal Form: Mediation Among Cross Cryptographic Leakages in Encrypted Databases}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={5560-5573},
+  keywords={Data privacy;Systematics;Databases;Inference mechanisms;Semantics;Data engineering;Outsourcing;Secure Data Management;Encryption;Holistic Leakage Accounting;Inference Control},
+  doi={10.1109/ICDE60146.2024.00444}}
+
+@article{10.1109/TKDE.2012.90,
+author = {Yi, Xun and Kaosar, Md. Golam and Paulet, Russell and Bertino, Elisa},
+title = {Single-Database Private Information Retrieval from Fully Homomorphic Encryption},
+year = {2013},
+issue_date = {May 2013},
+publisher = {IEEE Educational Activities Department},
+address = {USA},
+volume = {25},
+number = {5},
+issn = {1041-4347},
+url = {https://doi.org/10.1109/TKDE.2012.90},
+doi = {10.1109/TKDE.2012.90},
+abstract = {Private Information Retrieval (PIR) allows a user to retrieve the $(i)$th bit of an $(n)$-bit database without revealing to the database server the value of $(i)$. In this paper, we present a PIR protocol with the communication complexity of $(O(gamma log n))$ bits, where $(gamma)$ is the ciphertext size. Furthermore, we extend the PIR protocol to a private block retrieval (PBR) protocol, a natural and more practical extension of PIR in which the user retrieves a block of bits, instead of retrieving single bit. Our protocols are built on the state-of-the-art fully homomorphic encryption (FHE) techniques and provide privacy for the user if the underlying FHE scheme is semantically secure. The total communication complexity of our PBR is $(O(gamma log m+gamma n/m))$ bits, where $(m)$ is the number of blocks. The total computation complexity of our PBR is $(O(mlog m))$ modular multiplications plus $(O(n/2))$ modular additions. In terms of total protocol execution time, our PBR protocol is more efficient than existing PBR protocols which usually require to compute $(O(n/2))$ modular multiplications when the size of a block in the database is large and a high-speed network is available.},
+journal = {IEEE Trans. on Knowl. and Data Eng.},
+month = may,
+pages = {1125–1134},
+numpages = {10},
+keywords = {private block retrieval, fully homomorphic encryption, Private information retrieval}
+}
+
+@inproceedings{10.1145/2038916.2038928,
+author = {Wu, Sai and Li, Feng and Mehrotra, Sharad and Ooi, Beng Chin},
+title = {Query optimization for massively parallel data processing},
+year = {2011},
+isbn = {9781450309769},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2038916.2038928},
+doi = {10.1145/2038916.2038928},
+abstract = {MapReduce has been widely recognized as an efficient tool for large-scale data analysis. It achieves high performance by exploiting parallelism among processing nodes while providing a simple interface for upper-layer applications. Some vendors have enhanced their data warehouse systems by integrating MapReduce into the systems. However, existing MapReduce-based query processing systems, such as Hive, fall short of the query optimization and competency of conventional database systems. Given an SQL query, Hive translates the query into a set of MapReduce jobs sentence by sentence. This design assumes that the user can optimize his query before submitting it to the system. Unfortunately, manual query optimization is time consuming and difficult, even to an experienced database user or administrator. In this paper, we propose a query optimization scheme for MapReduce-based processing systems. Specifically, we embed into Hive a query optimizer which is designed to generate an efficient query plan based on our proposed cost model. Experiments carried out on our in-house cluster confirm the effectiveness of our query optimizer.},
+booktitle = {Proceedings of the 2nd ACM Symposium on Cloud Computing},
+articleno = {12},
+numpages = {13},
+keywords = {query optimization, multi-way join, MapReduce, Hive},
+location = {Cascais, Portugal},
+series = {SOCC '11}
+}
+
+@ARTICLE{8946540,
+  author={Wang, Yongzhi and Shen, Yulong and Su, Cuicui and Ma, Jiawen and Liu, Lingtong and Dong, Xuewen},
+  journal={IEEE Transactions on Computers}, 
+  title={CryptSQLite: SQLite With High Data Security}, 
+  year={2020},
+  volume={69},
+  number={5},
+  pages={666-678},
+  keywords={Databases;Encryption;Engines;Vegetation;Database security;SQLite;trusted execution environment;authenticated encryption;intel SGX},
+  doi={10.1109/TC.2019.2963303}}
+
+@inproceedings{10.1145/3448016.3452808,
+author = {Wang, Yilei and Yi, Ke},
+title = {Secure Yannakakis: Join-Aggregate Queries over Private Data},
+year = {2021},
+isbn = {9781450383431},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3448016.3452808},
+doi = {10.1145/3448016.3452808},
+abstract = {In this paper, we describe a secure version of the classical Yannakakis algorithm for computing free-connex join-aggregate queries. This protocol can be used in the secure two-party computation model, where the parties would like to evaluate a query without revealing their own data. Our protocol presents a dramatic improvement over the state-of-the-art protocol based on Yao's garbled circuit. In theory, its cost (both running time and communication) is linear in data size and polynomial in query size, whereas that of the garbled circuit is polynomial in data size and exponential in query size. This translates to a reduction in running time in practice from years to minutes, as tested on a number of TPC-H queries of varying complexity.},
+booktitle = {Proceedings of the 2021 International Conference on Management of Data},
+pages = {1969–1981},
+numpages = {13},
+keywords = {secure multi-party computation, query processing, join algorithm},
+location = {Virtual Event, China},
+series = {SIGMOD '21}
+}
+
+@inproceedings{10.1145/3576915.3616608,
+author = {Bian, Song and Zhang, Zhou and Pan, Haowen and Mao, Ran and Zhao, Zian and Jin, Yier and Guan, Zhenyu},
+title = {HE3DB: An Efficient and Elastic Encrypted Database Via Arithmetic-And-Logic Fully Homomorphic Encryption},
+year = {2023},
+isbn = {9798400700507},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3576915.3616608},
+doi = {10.1145/3576915.3616608},
+abstract = {As concerns are increasingly raised about data privacy, encrypted database management system (DBMS) based on fully homomorphic encryption (FHE) attracts increasing research attention, as FHE permits DBMS to be directly outsourced to cloud servers without revealing any plaintext data. However, the real-world deployment of FHE-based DBMS faces two main challenges: i) high computational latency, and ii) lack of elastic query processing capability, both of which stem from the inherent limitations of the underlying FHE operators. Here, we introduce HE3DB, a fully homomorphically encrypted, efficient and elastic DBMS framework based on a new FHE infrastructure. By proposing and integrating new arithmetic and logic homomorphic operators, we devise fast and high-precision homomorphic comparison and aggregation algorithms that enable a variety of SQL queries to be applied over FHE ciphertexts, e.g., compound filter-aggregation, sorting, grouping, and joining. In addition, in contrast to existing encrypted DBMS that only support aggregated information retrieval, our framework permits further server-side elastic analytical processing over the queried FHE ciphertexts, such as private decision tree evaluation. In the experiment, we rigorously study the efficiency and flexibility of HE3DB. We show that, compared to the state-of-the-art techniques, HE3DB can homomorphically evaluate end-to-end SQL queries as much as 41X-299X faster than the state-of-the-art solution, completing a TPC-H query over a 16-bit 10K-row database within 241 seconds.},
+booktitle = {Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security},
+pages = {2930–2944},
+numpages = {15},
+keywords = {fully homomorphic encryption, secure database outsourcing},
+location = {Copenhagen, Denmark},
+series = {CCS '23}
+}
+
+@inproceedings{10.1145/3658644.3670384,
+author = {Zhang, Zhou and Bian, Song and Zhao, Zian and Mao, Ran and Zhou, Haoyi and Hua, Jiafeng and Jin, Yier and Guan, Zhenyu},
+title = {ArcEDB: An Arbitrary-Precision Encrypted Database via (Amortized) Modular Homomorphic Encryption},
+year = {2024},
+isbn = {9798400706363},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3658644.3670384},
+doi = {10.1145/3658644.3670384},
+abstract = {Fully homomorphic encryption (FHE) based database outsourcing is drawing growing research interests. At its current state, there exist two primary obstacles against FHE-based encrypted databases (EDBs): i) low data precision, and ii) high computational latency. To tackle the precision-performance dilemma, we introduce ArcEDB, a novel FHE-based SQL evaluation infrastructure that simultaneously achieves high data precision and fast query evaluation. Based on a set of new plaintext encoding schemes, we are able to execute arbitrary-precision ciphertext-to-ciphertext homomorphic comparison orders of magnitude faster than existing methods. Meanwhile, we propose efficient conversion algorithms between the encoding schemes to support highly composite SQL statements, including advanced filter-aggregation and multi-column synchronized sorting. We perform comprehensive experiments to study the performance characteristics of ArcEDB. In particular, we show that ArcEDB can be up to 57\texttimes{} faster in homomorphic filtering and up to 20\texttimes{} faster over end-to-end SQL queries when compared to the state-of-the-art FHE-based EDB solutions. Using ArcEDB, a SQL query over a 10K-row time-series EDB with 64-bit timestamps only runs for under one minute.},
+booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
+pages = {4613–4627},
+numpages = {15},
+keywords = {fully homomorphic encryption, secure database outsourcing},
+location = {Salt Lake City, UT, USA},
+series = {CCS '24}
+}
+
+@misc{jung2026nshedbnoisesensitivehomomorphicencrypted,
+      title={NSHEDB: Noise-Sensitive Homomorphic Encrypted Database Query Engine}, 
+      author={Boram Jung and Yuliang Li and Hung-Wei Tseng},
+      year={2026},
+      eprint={2602.24271},
+      archivePrefix={arXiv},
+      primaryClass={cs.DB},
+      url={https://arxiv.org/abs/2602.24271}, 
+}
+
 @inproceedings {zheng2017opaque,
 author = {Wenting Zheng and Ankur Dave and Jethro G. Beekman and Raluca Ada Popa and Joseph E. Gonzalez and Ion Stoica},
 title = {Opaque: An Oblivious and Encrypted Distributed Analytics Platform},
@@ -1357,6 +1579,13 @@ series = {SIGMOD '02}
     year      = 2019,
     month     = jul,
     url       = "https://www.flux.utah.edu/paper/duplyakin-atc19"
+}
+
+@url{lattigo_github,
+	Author = {{Lattigo: lattice-based multiparty homomorphic encryption library in Go}},
+	Title = {\url{https://github.com/tuneinsight/lattigo
+}},
+	year = {Accessed 2026}
 }
 
 @url{ipcl_github,
