@@ -1,3 +1,27 @@
+# ==============================================================================
+# @file plot_enc.py
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Visualization script for homomorphic encryption throughput benchmarks.
+#
+# @details
+# This Python script generates high quality academic figures comparing the 
+# performance of Hermes packed encryption against singular FHE baselines. 
+# It processes raw latency data from three datasets (COVID 19, Bitcoin, and 
+# hg38) and calculates throughput in terms of tuples per second (TPS). 
+# The script utilizes a dual axis logarithmic plot: bars represent total 
+# execution time with distinct textures for accessibility, while a secondary 
+# line plot tracks the throughput trajectory. The resulting multi panel figure 
+# is exported as a vector PDF suitable for inclusion in LaTeX manuscripts.
+#
+# @dependencies
+# * matplotlib : Used for generating the multi panel logarithmic plots.
+# * numpy : Used for numerical coordinate calculations.
+#
+# @usage
+# python3 plot_enc.py
+# ==============================================================================
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os

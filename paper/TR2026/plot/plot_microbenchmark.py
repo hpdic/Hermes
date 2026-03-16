@@ -1,3 +1,27 @@
+# ==============================================================================
+# @file plot_microbenchmarks.py
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Visualization script for homomorphic addition and aggregation microbenchmarks.
+#
+# @details
+# This Python script generates comparative line plots evaluating the scalability 
+# of different homomorphic execution paths. It contrasts the linear growth of 
+# Paillier scalar addition and the logarithmic growth of standard FHE rotation 
+# based aggregation against the constant time (O(1)) performance of Hermes's 
+# SIMD packed operations. By using dual logarithmic axes and automated speedup 
+# annotations, the script visualizes how Hermes eliminates the performance 
+# penalties associated with increasing packing scales, achieving orders of 
+# magnitude improvement in both basic arithmetic and complex aggregation.
+#
+# @dependencies
+# * matplotlib : Used for generating the vector based dual panel line plots.
+# * numpy : Used for data manipulation and axis scaling.
+#
+# @usage
+# python3 plot_microbenchmarks.py
+# ==============================================================================
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os

@@ -1,3 +1,29 @@
+# ==============================================================================
+# @file plot_scalability.py
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Visualization script for Hermes system wide scalability analysis.
+#
+# @details
+# This Python script generates a comprehensive three panel figure to analyze how 
+# Hermes scales with increasing packing sizes (from 128 to 4096 slots). 
+# The first panel (a) uses a log-log line plot to demonstrate the inverse linear 
+# relationship between packing scale and total encryption time, proving that 
+# larger batches significantly amortize cryptographic overhead. Panels (b) and (c) 
+# employ grouped bar charts with professional textures to evaluate insertion and 
+# deletion performance across diverse datasets. The visualization highlights 
+# Hermes's architectural stability, showing that its data oblivious modification 
+# algorithms maintain near constant execution time regardless of the data scale 
+# or specific workload characteristics.
+#
+# @dependencies
+# * matplotlib : Used for complex multi panel mixed scale (log/linear) plotting.
+# * numpy : Used for categorical grouping and coordinate calculations.
+#
+# @usage
+# python3 plot_scalability.py
+# ==============================================================================
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os

@@ -1,3 +1,28 @@
+# ==============================================================================
+# @file plot_remove.py
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Visualization script for homomorphic deletion latency benchmarks.
+#
+# @details
+# This Python script generates a multi panel comparative figure focusing on the 
+# performance of data oblivious record removal. It evaluates the overhead of 
+# standard plaintext deletions against singular FHE and the Hermes SIMD packed 
+# approach. The visualization highlights the efficiency of Hermes's slot masking 
+# and shifting algorithms, which significantly reduce the latency of modifying 
+# immutable ciphertexts in place. By plotting results on a logarithmic scale, 
+# the script clearly demonstrates that Hermes can achieve several hundredfold 
+# speedups over traditional scalar encryption methods across various real world 
+# datasets.
+#
+# @dependencies
+# * matplotlib : Used for generating the vector based triple panel plots.
+# * numpy : Used for coordinate array management and data handling.
+#
+# @usage
+# python3 plot_remove.py
+# ==============================================================================
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os

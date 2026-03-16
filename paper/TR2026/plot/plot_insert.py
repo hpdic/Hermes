@@ -1,3 +1,28 @@
+# ==============================================================================
+# @file plot_insert.py
+# @author Dongfang Zhao (dzhao@uw.edu)
+#
+# @brief Visualization script for homomorphic insertion latency benchmarks.
+#
+# @details
+# This Python script generates a multi panel comparative figure evaluating 
+# record insertion performance. It contrasts three distinct execution 
+# environments: standard plaintext, singular FHE (scalar encryption), and 
+# the Hermes packed SIMD model at varying scales. The script utilizes a 
+# logarithmic scale to effectively visualize the massive performance disparity, 
+# which spans several orders of magnitude. Furthermore, it programmatically 
+# calculates and annotates the acceleration factor (speedup) between the 
+# baseline singular FHE and the optimized Hermes 4096-slot configuration, 
+# providing clear empirical evidence of the system's efficiency gains.
+#
+# @dependencies
+# * matplotlib : Used for generating the vector based triple panel plots.
+# * numpy : Used for positional array calculations and data handling.
+#
+# @usage
+# python3 plot_insert.py
+# ==============================================================================
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
