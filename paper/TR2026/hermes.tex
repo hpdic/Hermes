@@ -762,7 +762,7 @@ To answer RQ2, we evaluate the system performance for in-place data modification
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=\textwidth]{fig/eval_remove.pdf}
-\caption{Amortized in-place deletion latency per tuple across three evaluation datasets. The vertical axes utilize a logarithmic scale. The floating labels denote the relative speedup of Hermes-4096 against the Singular FHE baseline.}
+\caption{Amortized in-place deletion latency per tuple across three evaluation datasets. The vertical axes utilize a logarithmic scale. The floating labels denote the relative speedup of Hermes-4096 against the Singular FHE baseline.\don{The `Speedup' line needs to be elevated: it's cutting the numbers.}}
 \label{fig:remove}
 \end{figure*}
 
@@ -808,7 +808,7 @@ Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship betwee
 Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) reveal that the performance of in-place modifications remains entirely decoupled from the packing scale. The time required to perform 100 insertions or 100 deletions stays roughly constant across all scales. Specifically, the batch insertions stabilize at approximately 12.6 seconds, while the corresponding deletions take about 5.4 seconds. 
 This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent data modifications.
 
-\don{Maybe add a new subsection to compare Hermes against NSHEDB and its related work.}
+\don{Maybe add a new subsection of experiments to compare Hermes against NSHEDB and its related work (HE3DB and Arx?).}
 
 % \section{Related Work}
 % \label{sec:related}
