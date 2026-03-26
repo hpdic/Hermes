@@ -10,8 +10,7 @@ The name is also inspired by *Hermes*, the Greek god of communication, reflectin
 
 ## Technical Documentation
 
-* [Technical Report, Latest](paper/TR2026/hermes.pdf)
-* [Preprint, June 2025](https://arxiv.org/abs/2506.03308)
+* [Preprint](https://arxiv.org/pdf/2506.03308)
 
 ## Installation
 
