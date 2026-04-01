@@ -3,7 +3,7 @@
 
 
 % Title portion
-\title{Hermes: Bridging Relational and Algebraic Abstractions in Homomorphically Encrypted Databases}
+\title{Hermes: Towards Bridging Relational and Algebraic Abstractions in Homomorphically Encrypted Databases}
 
 \author{Dongfang Zhao}
 \affiliation{
@@ -49,7 +49,8 @@
 \begin{document}
 
 \begin{abstract}
-Fully Homomorphic Encryption (FHE) promises the ability to compute over encrypted data without revealing sensitive contents. Yet, integrating it into real-world relational databases remains elusive due to prohibitive performance overhead and the structural mismatch between mutable database records and static ciphertexts. This paper presents Hermes, a system that enables homomorphically encrypted vectorized relational queries directly inside a standard SQL engine. To bridge the relational and algebraic abstractions, Hermes introduces a SIMD-aware data model that packs multiple records per ciphertext. By embedding precomputed aggregate statistics alongside data slots, the system supports efficient rotation-free aggregations. Furthermore, to overcome ciphertext immutability, we develop data-oblivious homomorphic algorithms based on slot masking and shifting, enabling secure in-place record modifications. Hermes is implemented as native loadable functions in MySQL, marking the first practical integration of FHE into an industrial-grade relational database engine. Extensive evaluations across diverse datasets demonstrate an over 3400x increase in encryption throughput, an over 4000x speedup for tuple insertions, and a 300x acceleration for deletions when compared to conventional scalar FHE implementations.
+\don{This needs to be rewritten; the problem and the contributions are unclear.}
+Fully Homomorphic Encryption (FHE) promises the ability to compute over encrypted data without revealing sensitive contents. Yet, enabling this feature inside real-world relational databases remains elusive due to prohibitive performance overhead and the structural mismatch between mutable database tuples and immutable FHE ciphertexts. This paper presents Hermes, a framework that enables homomorphically encrypted queries directly on an SQL engine, e.g., MySQL. To bridge the relational and algebraic abstractions, Hermes introduces a SIMD-aware data model that packs multiple records per ciphertext. By embedding precomputed aggregate statistics alongside data slots, the system supports efficient rotation-free aggregations. Furthermore, to overcome ciphertext immutability, we develop data-oblivious homomorphic algorithms based on slot masking and shifting, enabling secure in-place record modifications. Hermes is implemented as native loadable functions in MySQL, marking the first practical integration of FHE into an industrial-grade relational database engine. Extensive evaluations across diverse datasets demonstrate an over 3400x increase in encryption throughput, an over 4000x speedup for tuple insertions, and a 300x acceleration for deletions when compared to conventional scalar FHE implementations.
 \end{abstract}
 
 % \begin{teaserfigure}
