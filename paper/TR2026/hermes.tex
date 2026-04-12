@@ -238,7 +238,7 @@ We summarize key terms and notation used throughout this paper. Let $n$ denote t
 
 \section{Hermes: Native FHE for Relational Databases}
 
-Hermes is designed as a MySQL-integrated system with a new data abstraction for storing, updating, and querying encrypted relational data via fully homomorphic encryption (FHE). It is built upon the multi-slot property of lattice-based FHE schemes (e.g., BFV), where a single ciphertext can encode a vector of plaintexts. This allows Hermes to pack multiple database records into a single ciphertext, enabling efficient SIMD-style operations. To support dynamic updates, we develop homomorphic algorithms for inserting and deleting records within packed ciphertexts without decryption. Additionally, we maintain auxiliary local sums within the ciphertext layout to accelerate aggregate queries. The following sections detail the design of Hermes's packed ciphertext data model and the homomorphic primitives for mutability. 
+% Hermes is designed as a MySQL-integrated system with a new data abstraction for storing, updating, and querying encrypted relational data via fully homomorphic encryption (FHE). It is built upon the multi-slot property of lattice-based FHE schemes (e.g., BFV), where a single ciphertext can encode a vector of plaintexts. This allows Hermes to pack multiple database records into a single ciphertext, enabling efficient SIMD-style operations. To support dynamic updates, we develop homomorphic algorithms for inserting and deleting records within packed ciphertexts without decryption. Additionally, we maintain auxiliary local sums within the ciphertext layout to accelerate aggregate queries. The following sections detail the design of Hermes's packed ciphertext data model and the homomorphic primitives for mutability. 
 
 \subsection{Packed Ciphertext Data Model}
 \label{sec:datamodel}
@@ -362,7 +362,7 @@ This fine-grained sum adjustment strategy is a key enabler of real-time encrypte
 \subsection{Security and Correctness Analysis}
 \label{sec:analysis}
 
-We provide a formal security analysis of Hermes under the standard IND-CPA model. Our design avoids client-server interaction after encryption and ensures that all slot-level operations are data-independent, thereby preventing leakage from slot position, access pattern, or update frequency. We further prove that the packed representation with embedded statistics does not weaken the semantic security of the base FHE scheme, and our masking/shift update primitives are indistinguishable under standard lattice assumptions.
+% We provide a formal security analysis of Hermes under the standard IND-CPA model. Our design avoids client-server interaction after encryption and ensures that all slot-level operations are data-independent, thereby preventing leakage from slot position, access pattern, or update frequency. We further prove that the packed representation with embedded statistics does not weaken the semantic security of the base FHE scheme, and our masking/shift update primitives are indistinguishable under standard lattice assumptions.
 
 \subsubsection{Security Model and Assumptions}
 
@@ -405,8 +405,12 @@ is negligible in the security parameter $\lambda$.
 Let $\mathcal{C}$ be the set of ciphertexts generated and manipulated by Hermes. Then under the assumption that the base FHE scheme (BFV) is IND-CPA secure, the ciphertext $c \in \mathcal{C}$ remains IND-CPA secure throughout all operations in Hermes.
 \end{lemma}
 
-\begin{proof}
-See Appendix.
+\begin{proof}[Proof Sketch]
+The proof relies on a reduction to the underlying IND-CPA security of the BFV scheme. Since Hermes constructs its packed data model using standard plaintext encoding and standard homomorphic evaluations, any adversary capable of distinguishing between two Hermes ciphertexts could be leveraged to break the semantic security of the base BFV encryption. 
+
+Furthermore, the deterministic inclusion of auxiliary local sums and the application of public plaintext masks during updates do not introduce new leakage channels. All slot modifications are performed strictly within the encrypted domain without relying on secret-dependent control flows. Due to space constraints, the full formal reduction is deferred to our extended technical report.
+
+The full proof can be found in the Appendix, where we construct a simulator that interacts with the IND-CPA challenger for BFV and demonstrates that any advantage in distinguishing Hermes ciphertexts translates to an advantage against the base scheme, thus confirming that Hermes maintains IND-CPA security under the given assumptions.
 \end{proof}
 
 An important subtlety in Hermes is the deterministic embedding of auxiliary data into a fixed slot. While this creates a structural invariant, it does not violate IND-CPA since the data being embedded is functionally independent on other encrypted slots. From a cryptographic perspective, this corresponds to publishing a function $f(v_0, \dots, v_{n-2}) = s$ along with the encryption of the vector, which is a standard practice in FHE-based secure computation.
@@ -438,8 +442,12 @@ Hermes guarantees slot-level update privacy if $\text{Adv}^{\text{slot-ins}}_\ma
 If the underlying BFV encryption scheme is IND-CPA secure, then Hermes satisfies slot-update indistinguishability for any polynomial-time adversary $\mathcal{A}$.
 \end{theorem}
 
-\begin{proof}
-See Appendix.
+\begin{proof}[Proof Sketch]
+We construct a proof by contradiction showing that an adversary cannot distinguish which specific slot index was modified during an insertion or deletion. The homomorphic update logic isolates the target slot using public position-independent masks and executes a uniform sequence of Galois rotations and plaintext multiplications regardless of the target index. 
+
+Because the inserted or deleted payload is encrypted under the semantically secure BFV scheme before being homomorphically added to the masked vector, the resulting ciphertext maintains statistical uniformity. Any non-negligible advantage in guessing the updated slot would directly contradict the indistinguishability of the fresh ciphertext. The complete indistinguishability game is detailed in our technical report.
+
+The full proof can be found in the Appendix, where we show that any adversary $\mathcal{A}$ that can distinguish between updates at different slots can be used to construct a simulator that breaks the IND-CPA security of the underlying BFV scheme, thus confirming that Hermes maintains slot-level update privacy under the given assumptions.
 \end{proof}
 
 It is important to note that Hermes maintains \textit{position-hiding homomorphism} not by permuting slot values, but by maintaining the slot structure while masking all auxiliary effects of an update. The Galois shift operator is position-invariant modulo a known offset; the zeroing mask ensures no unintentional data leaks from adjacent slots. The reserved auxiliary slot (e.g., local sum) is updated using scalar plaintext operations, and its growth reflects only the net value change, not the specific position of insertion or deletion. This makes Hermes suitable for applications requiring structural privacy in addition to semantic security.
@@ -457,90 +465,121 @@ We now formally prove that Hermes \emph{correctly} maintains the semantics of en
   \end{enumerate}
 \end{theorem}
 
-\begin{proof}
-See Appendix.
+\begin{proof}[Proof Sketch]
+The correctness of the Hermes data model is proven by algebraically tracing the homomorphic slot manipulations and verifying them against the expected plaintext relational operations. For insertions and deletions, we demonstrate that the combination of Galois shifting and zeroing masks perfectly preserves the structural order of the active payload slots while maintaining the strict capacity invariants. 
+
+Similarly, the auxiliary local sum is incrementally maintained via homomorphic scalar addition or subtraction, ensuring perfect synchronization with the payload. When global aggregation is evaluated, the homomorphic addition across the aligned auxiliary slots naturally yields the exact cumulative sum of all underlying tuples. A step-by-step formal expansion is available in the extended technical report.
+
+The full proof can be found in the Appendix, where we provide a rigorous algebraic verification of each property, demonstrating that the homomorphic operations in Hermes faithfully implement the intended relational semantics under encryption.
 \end{proof}
+
+% \section{System Implementation}
+% \label{sec:implementation}
+
+% We implement \textsc{Hermes} as a suite of MySQL loadable functions written in C++ with OpenFHE v1.2.4. The system consists of modular components for slot-wise packing, homomorphic insertion and deletion, local-sum-aware aggregation, and slot-selective decryption, all of which are executed natively within the MySQL runtime.
+
+% As of April 2026, the codebase comprises 4761 lines of code. All components are implemented in C++ and compiled into dynamic libraries registered as MySQL loadable functions. Our minimalist integration strategy avoids any modification to the MySQL source code or query engine internals. The full source code is publicly available on Github.
+% % \[
+% % \texttt{\url{https://github.com/hpdic/hermes}}
+% % \]
+% Experiments and development were partially supported by the NSF-funded Chameleon Cloud infrastructure~\cite{chameleoncloud}.
+
+% \subsection{Architecture and Integration}
+
+% Hermes is implemented as a runtime plugin using the MySQL User Defined Function (UDF) interface. Each cryptographic operation is compiled as a C++ function into a shared object \texttt{.so} file, which is dynamically linked into the MySQL server process at runtime. This mechanism preserves full compatibility with unmodified MySQL 8.x deployments, requiring no server side modifications or query proxies.
+
+% Each plugin function adheres strictly to the MySQL UDF lifecycle. The \texttt{\_init} function validates argument counts and types while allocating necessary internal states. The core execution resides in \texttt{\_func}, which runs per row during query evaluation. Finally, the optional \texttt{\_deinit} function releases allocated memory and handles. Hermes relies on this C interface to expose its cryptographic primitives to the SQL engine.
+
+% To bridge MySQL data types and OpenFHE plaintexts, all inputs undergo explicit parsing across the foreign function interface (FFI) boundary. MySQL UDF arguments arrive as raw C pointers tagged with type enumerations, such as \texttt{INT\_RESULT} or \texttt{STRING\_RESULT}. Hermes implements strict casting logic to convert these inputs into 64 bit signed integers, utilizing \texttt{std::istringstream} when numerical data is passed as string types. These scalar values are subsequently passed to the OpenFHE \texttt{MakePackedPlaintext} API.
+
+% Instead of serializing ciphertexts into strings or blobs for every operation, ciphertext objects are allocated on the heap and remain within the memory space of the MySQL process. For diagnostic and linkage purposes, Hermes returns a string encoded metadata footprint of the ciphertext rather than the serialized payload. This diagnostic string takes the format of \texttt{0xADDR (v, size=s)}, where \texttt{ADDR} is the hexadecimal memory address of the ciphertext object, \( v \in \mathbb{Z} \) is a verified decrypted payload used for internal sanity checks, and \( s \) represents the object footprint in bytes. This memory centric layout minimizes I/O overhead during query execution.
+
+% Integrating OpenFHE v1.2.4 requires specific dynamic linker configurations. Hermes statically compiles the necessary cryptographic modules and bundles them into a relocatable shared object. At runtime, dependencies like \texttt{libOPENFHEcore.so} are copied into the MySQL plugin directory. To make these visible to the \texttt{mysqld} daemon, an injected \texttt{LD\_LIBRARY\_PATH} is configured via a \texttt{systemd} override file. This deployment strategy ensures correct dynamic linking on Ubuntu 24.04 LTS environments and prevents unresolved symbol errors during plugin initialization.
+
+% All plugin logic is written in C++17 and built via CMake. To comply with MySQL plugin constraints, external entry points are wrapped in \texttt{extern `C'} linkage using plain pointer based memory semantics. Exceptions are strictly caught and handled before crossing the FFI boundary to prevent database crashes. Furthermore, Hermes redirects all diagnostic output and OpenFHE warnings to \texttt{stderr}, which the operating system automatically routes into the standard MySQL error log at \texttt{/var/log/mysql/error.log} for offline inspection.
+
+% \subsection{Context and Key Management}
+
+% To ensure consistent cryptographic behavior across all SQL plugin functions, Hermes constructs a single shared encryption context during the MySQL plugin initialization phase. This context is generated using the OpenFHE \texttt{GenCryptoContext} API. We parameterize the environment with a plaintext modulus \( t = 65537 \), a ring dimension \( N = 2^{14} \), and a multiplicative depth \( d = 2 \). These specific engineering parameters are selected to balance computational latency with a sufficient noise budget for query evaluations.
+
+% Once the core context is established in memory, we explicitly enable the required OpenFHE operational modes. This includes Public Key Encryption (PKE) for fundamental encryption tasks, Leveled Somewhat Homomorphic Encryption (SHE) for evaluating arithmetic circuits, and Advanced SHE to unlock evaluation keys.
+
+% Key generation occurs once at system startup. \texttt{KeyGen()} is invoked to produce the public and secret keys. Subsequently, Hermes generates the necessary auxiliary cryptographic materials. This involves calling \texttt{EvalMultKeyGen()} to create relinearization keys, which are essential for managing ciphertext sizes after homomorphic multiplications. We also invoke \texttt{EvalSumKeyGen()} and \texttt{EvalAtIndex()} to generate the Galois keys required for our slot rotation algorithms.
+
+% Managing state within the MySQL UDF framework requires careful engineering. To prevent state corruption or unintended key regeneration across thousands of independent row invocations, all cryptographic keys and the evaluation context are encapsulated within static C++ global variables. These variables are protected by thread safe initialization flags. Consequently, the cryptographic environment is instantiated exactly once and efficiently reused by all subsequent UDF calls. All sensitive key materials reside exclusively in volatile memory and are never serialized to storage, eliminating risks associated with disk input output and deserialization vulnerabilities.
+
+% \subsection{Ciphertext Format and Memory Layout}
+
+% To ensure predictable memory usage and interoperation with the MySQL engine, each ciphertext object is allocated directly on the C++ heap and remains entirely opaque to the database. Rather than serializing ciphertexts into bulky binary blobs for storage in relational tables, Hermes returns a lightweight diagnostic string back to the SQL context. This string contains the memory address of the ciphertext formatted as a hexadecimal pointer, a plaintext verification value obtained via local decryption, and the object size derived from the C++ \texttt{sizeof} operator. For example, an encrypted tuple vector might yield a database cell value resembling \texttt{0x7ffee31b2ac0 (sum = 13200, size = 128)}.
+
+% Internally, all ciphertexts are instantiated using the polymorphic type system provided by OpenFHE, specifically relying on the \texttt{Ciphertext<DCRTPoly>} class. This type encapsulates a leveled ciphertext vector over RNS encoded polynomial rings. While OpenFHE provides comprehensive APIs for deep object serialization, Hermes bypasses these mechanisms to minimize dependencies on runtime I/O and reduce memory overhead during execution.
+
+% Consequently, the SQL facing UDFs operate by passing these hexadecimal pointer strings between functions. When operations such as \texttt{HERMES\_PACK\_CONVERT()} are invoked in a query, the plugin parses the string to recover the memory address, safely casts it back to a \texttt{Ciphertext<DCRTPoly>} pointer, and performs the requested homomorphic evaluation directly in memory. This pointer based memory lifecycle ensures that the heavy cryptographic objects never cross the foreign function interface boundary, keeping the SQL engine lightweight and avoiding deserialization penalties.
+
+% \subsection{Encrypted Aggregate Query}
+
+% Hermes exposes its aggregation engine to MySQL through specialized User Defined Functions that operate directly on memory pointers. To execute a full table summation, the database engine invokes the \texttt{HERMES\_PACK\_GLOBAL\_SUM()} function. This UDF accepts a sequence of ciphertext pointers corresponding to the aggregated partitions. Internally, the plugin parses these hexadecimal strings, resolves them into \texttt{Ciphertext<DCRTPoly>} objects, and iteratively applies the OpenFHE \texttt{EvalAdd} API to compute the total sum homomorphically. A new ciphertext object holding the aggregated result is then allocated on the C++ heap, and its pointer is returned to the SQL runtime.
+
+% For group wise aggregation queries that utilize the SQL \texttt{GROUP BY} clause, Hermes provides the \texttt{HERMES\_PACK\_GROUP\_SUM()} UDF. This function seamlessly integrates with the internal grouping operator of MySQL. As the SQL engine groups rows based on the specified keys, the UDF dispatch logic ensures that ciphertext pointers sharing the same group key are passed together into the homomorphic addition loop. The function then yields a unique per-group sum ciphertext pointer.
+
+% The final step of the aggregation pipeline is to extract the SQL visible scalar result. This is handled by the decryption function called \texttt{HERMES\_DEC\_VECTOR\_SUMMABLE()}. By strictly adhering to a hardcoded indexing contract, this routine isolates the specific slot designated for auxiliary metadata, extracts the integer, and passes it back to the database client. This strict separation between the addition UDFs and the decryption UDF ensures that aggregation remains entirely isolated within the encrypted memory space until the user explicitly requests plaintext extraction.
+
+% \subsection{Homomorphic Update}
+
+% The homomorphic update engine in Hermes is engineered as a stateless component within the MySQL plugin architecture. To perform in-place modifications, \texttt{HERMES\_INSERT()} and \texttt{HERMES\_REMOVE()} UDFs accept a hexadecimal ciphertext pointer, a plaintext scalar, and a target slot index as SQL arguments. Once parsed across the FFI boundary, the C++ logic dynamically allocates intermediate OpenFHE ciphertext objects required for the shift and mask operations. These temporary objects are constructed on the heap during the evaluation phase and are immediately deallocated upon function completion. This aggressive memory management strategy minimizes the footprint of the plugin and prevents memory leaks across sequential queries.
+
+% Furthermore, the update implementation enforces bounds checking to maintain memory safety and slot alignment. The C++ routines validate all incoming slot indices against the maximum capacity defined during context initialization. Any attempt to modify the reserved auxiliary metadata slot triggers an immediate early return, yielding a \texttt{NULL} result to the SQL client and logging a boundary violation to the server error stream. This defensive programming approach prevents buffer overflows and structural corruption of the packed ciphertexts caused by malformed SQL inputs.
+
+% At the code level, the C++ implementation ensures that all execution paths remain entirely data oblivious. The sequence of OpenFHE API calls, such as \texttt{EvalRotate} and \texttt{EvalMult}, is determined solely by the public slot indices and the dimensions of the generated plaintext masks. The plugin avoids any conditional branching or loop terminations predicated on the decrypted contents of the vectors. This strict separation guarantees that the runtime execution profile of the update UDFs leaks no information about the underlying encrypted database records.
+
+% \subsection{Result Extraction and Decryption Interface}
+
+% In a production deployment, Hermes strictly adheres to the standard threat model of fully homomorphic encryption, ensuring that the secret key resides exclusively on the trusted client. The MySQL server is only responsible for evaluating the queries and returning either the memory pointers or the serialized payloads of the resulting ciphertexts. The client application then performs the decryption locally. This architecture guarantees that the database engine never has access to the plaintext records or the secret key.
+
+% However, to facilitate rigorous performance profiling and isolate the cryptographic latency from network overhead, Hermes provides a localized decryption harness strictly for benchmarking purposes. This evaluation interface operates entirely within the MySQL server process and is exposed via dedicated read only UDFs. The execution workflow initiates when the SQL engine passes a hexadecimal string handle to the decryption function. The C++ plugin parses this string to resolve the memory address and performs strict pointer validation to confirm alignment with the expected OpenFHE \texttt{Ciphertext<DCRTPoly>} memory layout.
+
+% When operating in this testing mode, the plugin invokes the OpenFHE \texttt{Decrypt} API using a resident evaluation key provisioned solely for experimental environments. The decrypted output is subsequently converted into a standard C++ vector using \texttt{SetLength} and \texttt{GetPackedValue}. To minimize memory copying and adhere to the strict scalar return requirements of the MySQL FFI, the plugin logic extracts only the specifically requested integer slot, avoiding the construction of oversized response buffers.
+
+% The extracted scalar is then formatted and safely written into the UDF return buffer. To ensure robustness against malformed queries, the implementation enforces strict bounds checking on the requested slot index. If the database client attempts to access an out-of-bounds index, the C++ routine aborts the extraction, yields a \texttt{NULL} result to the SQL context, and emits a diagnostic warning to the server error log. Additionally, all decryption operations are engineered to be strictly read-only, guaranteeing that the underlying ciphertext objects remain immutable and safe for concurrent query evaluations.
+
+% \subsection{Challenges and Learned Lessons}
+
+% MySQL's user-defined function (UDF) interface, while technically C-compatible, imposes a range of low-level constraints that complicate integration with modern C++ libraries like OpenFHE. One prominent example is the UDF return buffer: although MySQL allows \texttt{char*} return types, it silently allocates a default buffer of 256 bytes and expects the result to be manually null-terminated and sized via the \texttt{length} pointer. If we forget to carefully track the length or overflows the buffer, the output is truncated or causes undefined behavior, with no warning from MySQL. To ensure safe operation, Hermes explicitly monitors string lengths and uses \texttt{memcpy} with zero padding.
+
+% Another challenge arises from MySQL's strict type expectations during UDF registration and invocation. The \texttt{arg\_type[]} array must precisely match the declared input behavior, and any mismatch, e.g., expecting \texttt{INT\_RESULT} but receiving a string-cast input, can result in either incorrect parsing or segmentation faults. This sensitivity is further exacerbated when dealing with numeric values passed as \texttt{STRING\_RESULT}, requiring explicit string-to-integer conversions inside the plugin. Hermes handles this by explicitly checking and parsing each argument type and issuing warnings for unsupported patterns.
+
+% Despite being written in C++, all Hermes UDFs must be registered using \texttt{extern ``C''} linkage, preventing name mangling and ensuring compatibility with MySQL's dynamic symbol resolution. However, this also restricts the use of modern C++ idioms such as RAII, smart pointers, or class encapsulation for memory management. Instead, plugin state (e.g., ciphertext handles, encryption context) must be tracked manually via global heap allocations or pointer-passing, with careful attention to lifecycle management to avoid memory leaks or dangling references across UDF calls.
+
+% Linking OpenFHE into the MySQL runtime poses its own set of challenges. Since MySQL does not inherit environment variables like \texttt{LD\_LIBRARY\_PATH} when started as a systemd service, shared libraries such as \texttt{libOPENFHEpke.so} are not found unless explicitly injected. Hermes addresses this by generating a \texttt{systemd} override file to add the plugin directory to the runtime path and restarting the MySQL daemon after deployment. This step is essential but poorly documented, and its omission results in non-descriptive runtime errors about unresolved symbols in the shared object.
+
+% A particularly subtle issue involves the generation and use of Galois keys for slot rotation operations. OpenFHE requires that Galois keys be generated explicitly after context and secret key initialization, and failure to do so results in undocumented runtime errors or silent failures during rotation-based operations. Moreover, if multiple plugins generate conflicting Galois keys or overwrite global state, the system may enter a corrupted state, especially if MySQL reuses shared library handles across multiple function invocations. Hermes mitigates this by generating all required keys exactly once at system initialization and disallowing repeated or partial regeneration during runtime.
 
 \section{System Implementation}
 \label{sec:implementation}
 
 We implement \textsc{Hermes} as a suite of MySQL loadable functions written in C++ with OpenFHE v1.2.4. The system consists of modular components for slot-wise packing, homomorphic insertion and deletion, local-sum-aware aggregation, and slot-selective decryption, all of which are executed natively within the MySQL runtime.
 
-As of April 2026, the codebase comprises 4761 lines of code. All components are implemented in C++ and compiled into dynamic libraries registered as MySQL loadable functions. Our minimalist integration strategy avoids any modification to the MySQL source code or query engine internals. The full source code is publicly available on Github.
-% \[
-% \texttt{\url{https://github.com/hpdic/hermes}}
-% \]
-Experiments and development were partially supported by the NSF-funded Chameleon Cloud infrastructure~\cite{chameleoncloud}.
+As of April 2026, the codebase comprises 4761 lines of code. All components are implemented in C++ and compiled into dynamic libraries registered as MySQL loadable functions. Our minimalist integration strategy avoids any modification to the MySQL source code or query engine internals. The full source code is publicly available on Github. Experiments and development were partially supported by the NSF-funded Chameleon Cloud infrastructure~\cite{chameleoncloud}. 
+
+More implementation details can be found in the Appendix.
 
 \subsection{Architecture and Integration}
 
-Hermes is implemented as a runtime plugin using the MySQL User Defined Function (UDF) interface. Each cryptographic operation is compiled as a C++ function into a shared object \texttt{.so} file, which is dynamically linked into the MySQL server process at runtime. This mechanism preserves full compatibility with unmodified MySQL 8.x deployments, requiring no server side modifications or query proxies.
+Each cryptographic operation is compiled as a C++ function into a shared object file, which is dynamically linked into the MySQL server process. This mechanism preserves full compatibility with unmodified MySQL 8.x deployments, requiring no server side modifications or query proxies. Each plugin function adheres strictly to the MySQL UDF lifecycle. The \texttt{\_init} function validates argument counts and types while allocating necessary internal states. The core execution resides in \texttt{\_func}, which runs per row during query evaluation. Finally, the optional \texttt{\_deinit} function releases allocated memory and handles. 
 
-Each plugin function adheres strictly to the MySQL UDF lifecycle. The \texttt{\_init} function validates argument counts and types while allocating necessary internal states. The core execution resides in \texttt{\_func}, which runs per row during query evaluation. Finally, the optional \texttt{\_deinit} function releases allocated memory and handles. Hermes relies on this C interface to expose its cryptographic primitives to the SQL engine.
+To bridge MySQL data types and OpenFHE plaintexts, all inputs undergo explicit parsing across the foreign function interface (FFI) boundary. MySQL UDF arguments arrive as raw C pointers tagged with type enumerations, such as \texttt{INT\_RESULT} or \texttt{STRING\_RESULT}. Hermes implements strict casting logic to convert these inputs into 64-bit signed integers, utilizing \texttt{std::istringstream} when numerical data is passed as string types. These scalar values are subsequently passed to the OpenFHE \texttt{MakePackedPlaintext} API.
 
-To bridge MySQL data types and OpenFHE plaintexts, all inputs undergo explicit parsing across the foreign function interface (FFI) boundary. MySQL UDF arguments arrive as raw C pointers tagged with type enumerations, such as \texttt{INT\_RESULT} or \texttt{STRING\_RESULT}. Hermes implements strict casting logic to convert these inputs into 64 bit signed integers, utilizing \texttt{std::istringstream} when numerical data is passed as string types. These scalar values are subsequently passed to the OpenFHE \texttt{MakePackedPlaintext} API.
+\subsection{Memory Centric Ciphertext Management}
 
-Instead of serializing ciphertexts into strings or blobs for every operation, ciphertext objects are allocated on the heap and remain within the memory space of the MySQL process. For diagnostic and linkage purposes, Hermes returns a string encoded metadata footprint of the ciphertext rather than the serialized payload. This diagnostic string takes the format of \texttt{0xADDR (v, size=s)}, where \texttt{ADDR} is the hexadecimal memory address of the ciphertext object, \( v \in \mathbb{Z} \) is a verified decrypted payload used for internal sanity checks, and \( s \) represents the object footprint in bytes. This memory centric layout minimizes I/O overhead during query execution.
+Instead of serializing ciphertexts into strings or blobs for every operation, ciphertext objects are allocated on the heap and remain within the memory space of the MySQL process. For diagnostic and linkage purposes, Hermes returns a string-encoded metadata footprint of the ciphertext rather than the serialized payload. This diagnostic string takes the format of \texttt{0xADDR (v, size=s)}, where \texttt{ADDR} is the hexadecimal memory address of the ciphertext object, $v \in \mathbb{Z}$ is a verified decrypted payload used for internal sanity checks, and $s$ represents the object footprint in bytes.
 
-Integrating OpenFHE v1.2.4 requires specific dynamic linker configurations. Hermes statically compiles the necessary cryptographic modules and bundles them into a relocatable shared object. At runtime, dependencies like \texttt{libOPENFHEcore.so} are copied into the MySQL plugin directory. To make these visible to the \texttt{mysqld} daemon, an injected \texttt{LD\_LIBRARY\_PATH} is configured via a \texttt{systemd} override file. This deployment strategy ensures correct dynamic linking on Ubuntu 24.04 LTS environments and prevents unresolved symbol errors during plugin initialization.
-
-All plugin logic is written in C++17 and built via CMake. To comply with MySQL plugin constraints, external entry points are wrapped in \texttt{extern `C'} linkage using plain pointer based memory semantics. Exceptions are strictly caught and handled before crossing the FFI boundary to prevent database crashes. Furthermore, Hermes redirects all diagnostic output and OpenFHE warnings to \texttt{stderr}, which the operating system automatically routes into the standard MySQL error log at \texttt{/var/log/mysql/error.log} for offline inspection.
+This memory-centric layout minimizes I/O overhead during query execution. When operations like \texttt{HERMES\_PACK\_CONVERT()} are invoked in a query, the plugin parses the string to recover the memory address, safely casts it back to a \texttt{Ciphertext<DCRTPoly>} pointer, and performs the requested homomorphic evaluation directly in memory. This pointer-based memory lifecycle ensures that the heavy cryptographic objects never cross the FFI boundary, keeping the SQL engine lightweight and avoiding deserialization penalties.
 
 \subsection{Context and Key Management}
 
-To ensure consistent cryptographic behavior across all SQL plugin functions, Hermes constructs a single shared encryption context during the MySQL plugin initialization phase. This context is generated using the OpenFHE \texttt{GenCryptoContext} API. We parameterize the environment with a plaintext modulus \( t = 65537 \), a ring dimension \( N = 2^{14} \), and a multiplicative depth \( d = 2 \). These specific engineering parameters are selected to balance computational latency with a sufficient noise budget for query evaluations.
+To ensure consistent cryptographic behavior across all SQL plugin functions, Hermes constructs a single shared encryption context during the initialization phase. This context is generated using the OpenFHE \texttt{GenCryptoContext} API. We parameterize the environment with a plaintext modulus $t = 65537$, a ring dimension $N = 2^{14}$, and a multiplicative depth $d = 2$. These parameters are selected to balance computational latency with a sufficient noise budget for query evaluations.
 
-Once the core context is established in memory, we explicitly enable the required OpenFHE operational modes. This includes Public Key Encryption (PKE) for fundamental encryption tasks, Leveled Somewhat Homomorphic Encryption (SHE) for evaluating arithmetic circuits, and Advanced SHE to unlock evaluation keys.
-
-Key generation occurs once at system startup. \texttt{KeyGen()} is invoked to produce the public and secret keys. Subsequently, Hermes generates the necessary auxiliary cryptographic materials. This involves calling \texttt{EvalMultKeyGen()} to create relinearization keys, which are essential for managing ciphertext sizes after homomorphic multiplications. We also invoke \texttt{EvalSumKeyGen()} and \texttt{EvalAtIndex()} to generate the Galois keys required for our slot rotation algorithms.
-
-Managing state within the MySQL UDF framework requires careful engineering. To prevent state corruption or unintended key regeneration across thousands of independent row invocations, all cryptographic keys and the evaluation context are encapsulated within static C++ global variables. These variables are protected by thread safe initialization flags. Consequently, the cryptographic environment is instantiated exactly once and efficiently reused by all subsequent UDF calls. All sensitive key materials reside exclusively in volatile memory and are never serialized to storage, eliminating risks associated with disk input output and deserialization vulnerabilities.
-
-\subsection{Ciphertext Format and Memory Layout}
-
-To ensure predictable memory usage and interoperation with the MySQL engine, each ciphertext object is allocated directly on the C++ heap and remains entirely opaque to the database. Rather than serializing ciphertexts into bulky binary blobs for storage in relational tables, Hermes returns a lightweight diagnostic string back to the SQL context. This string contains the memory address of the ciphertext formatted as a hexadecimal pointer, a plaintext verification value obtained via local decryption, and the object size derived from the C++ \texttt{sizeof} operator. For example, an encrypted tuple vector might yield a database cell value resembling \texttt{0x7ffee31b2ac0 (sum = 13200, size = 128)}.
-
-Internally, all ciphertexts are instantiated using the polymorphic type system provided by OpenFHE, specifically relying on the \texttt{Ciphertext<DCRTPoly>} class. This type encapsulates a leveled ciphertext vector over RNS encoded polynomial rings. While OpenFHE provides comprehensive APIs for deep object serialization, Hermes bypasses these mechanisms to minimize dependencies on runtime I/O and reduce memory overhead during execution.
-
-Consequently, the SQL facing UDFs operate by passing these hexadecimal pointer strings between functions. When operations such as \texttt{HERMES\_PACK\_CONVERT()} are invoked in a query, the plugin parses the string to recover the memory address, safely casts it back to a \texttt{Ciphertext<DCRTPoly>} pointer, and performs the requested homomorphic evaluation directly in memory. This pointer based memory lifecycle ensures that the heavy cryptographic objects never cross the foreign function interface boundary, keeping the SQL engine lightweight and avoiding deserialization penalties.
-
-\subsection{Encrypted Aggregate Query}
-
-Hermes exposes its aggregation engine to MySQL through specialized User Defined Functions that operate directly on memory pointers. To execute a full table summation, the database engine invokes the \texttt{HERMES\_PACK\_GLOBAL\_SUM()} function. This UDF accepts a sequence of ciphertext pointers corresponding to the aggregated partitions. Internally, the plugin parses these hexadecimal strings, resolves them into \texttt{Ciphertext<DCRTPoly>} objects, and iteratively applies the OpenFHE \texttt{EvalAdd} API to compute the total sum homomorphically. A new ciphertext object holding the aggregated result is then allocated on the C++ heap, and its pointer is returned to the SQL runtime.
-
-For group wise aggregation queries that utilize the SQL \texttt{GROUP BY} clause, Hermes provides the \texttt{HERMES\_PACK\_GROUP\_SUM()} UDF. This function seamlessly integrates with the internal grouping operator of MySQL. As the SQL engine groups rows based on the specified keys, the UDF dispatch logic ensures that ciphertext pointers sharing the same group key are passed together into the homomorphic addition loop. The function then yields a unique per-group sum ciphertext pointer.
-
-The final step of the aggregation pipeline is to extract the SQL visible scalar result. This is handled by the decryption function called \texttt{HERMES\_DEC\_VECTOR\_SUMMABLE()}. By strictly adhering to a hardcoded indexing contract, this routine isolates the specific slot designated for auxiliary metadata, extracts the integer, and passes it back to the database client. This strict separation between the addition UDFs and the decryption UDF ensures that aggregation remains entirely isolated within the encrypted memory space until the user explicitly requests plaintext extraction.
-
-\subsection{Homomorphic Update}
-
-The homomorphic update engine in Hermes is engineered as a stateless component within the MySQL plugin architecture. To perform in-place modifications, \texttt{HERMES\_INSERT()} and \texttt{HERMES\_REMOVE()} UDFs accept a hexadecimal ciphertext pointer, a plaintext scalar, and a target slot index as SQL arguments. Once parsed across the FFI boundary, the C++ logic dynamically allocates intermediate OpenFHE ciphertext objects required for the shift and mask operations. These temporary objects are constructed on the heap during the evaluation phase and are immediately deallocated upon function completion. This aggressive memory management strategy minimizes the footprint of the plugin and prevents memory leaks across sequential queries.
-
-Furthermore, the update implementation enforces bounds checking to maintain memory safety and slot alignment. The C++ routines validate all incoming slot indices against the maximum capacity defined during context initialization. Any attempt to modify the reserved auxiliary metadata slot triggers an immediate early return, yielding a \texttt{NULL} result to the SQL client and logging a boundary violation to the server error stream. This defensive programming approach prevents buffer overflows and structural corruption of the packed ciphertexts caused by malformed SQL inputs.
-
-At the code level, the C++ implementation ensures that all execution paths remain entirely data oblivious. The sequence of OpenFHE API calls, such as \texttt{EvalRotate} and \texttt{EvalMult}, is determined solely by the public slot indices and the dimensions of the generated plaintext masks. The plugin avoids any conditional branching or loop terminations predicated on the decrypted contents of the vectors. This strict separation guarantees that the runtime execution profile of the update UDFs leaks no information about the underlying encrypted database records.
-
-\subsection{Result Extraction and Decryption Interface}
-
-In a production deployment, Hermes strictly adheres to the standard threat model of fully homomorphic encryption, ensuring that the secret key resides exclusively on the trusted client. The MySQL server is only responsible for evaluating the queries and returning either the memory pointers or the serialized payloads of the resulting ciphertexts. The client application then performs the decryption locally. This architecture guarantees that the database engine never has access to the plaintext records or the secret key.
-
-However, to facilitate rigorous performance profiling and isolate the cryptographic latency from network overhead, Hermes provides a localized decryption harness strictly for benchmarking purposes. This evaluation interface operates entirely within the MySQL server process and is exposed via dedicated read only UDFs. The execution workflow initiates when the SQL engine passes a hexadecimal string handle to the decryption function. The C++ plugin parses this string to resolve the memory address and performs strict pointer validation to confirm alignment with the expected OpenFHE \texttt{Ciphertext<DCRTPoly>} memory layout.
-
-When operating in this testing mode, the plugin invokes the OpenFHE \texttt{Decrypt} API using a resident evaluation key provisioned solely for experimental environments. The decrypted output is subsequently converted into a standard C++ vector using \texttt{SetLength} and \texttt{GetPackedValue}. To minimize memory copying and adhere to the strict scalar return requirements of the MySQL FFI, the plugin logic extracts only the specifically requested integer slot, avoiding the construction of oversized response buffers.
-
-The extracted scalar is then formatted and safely written into the UDF return buffer. To ensure robustness against malformed queries, the implementation enforces strict bounds checking on the requested slot index. If the database client attempts to access an out-of-bounds index, the C++ routine aborts the extraction, yields a \texttt{NULL} result to the SQL context, and emits a diagnostic warning to the server error log. Additionally, all decryption operations are engineered to be strictly read-only, guaranteeing that the underlying ciphertext objects remain immutable and safe for concurrent query evaluations.
-
-\subsection{Challenges and Learned Lessons}
-
-MySQL's user-defined function (UDF) interface, while technically C-compatible, imposes a range of low-level constraints that complicate integration with modern C++ libraries like OpenFHE. One prominent example is the UDF return buffer: although MySQL allows \texttt{char*} return types, it silently allocates a default buffer of 256 bytes and expects the result to be manually null-terminated and sized via the \texttt{length} pointer. If we forget to carefully track the length or overflows the buffer, the output is truncated or causes undefined behavior, with no warning from MySQL. To ensure safe operation, Hermes explicitly monitors string lengths and uses \texttt{memcpy} with zero padding.
-
-Another challenge arises from MySQL's strict type expectations during UDF registration and invocation. The \texttt{arg\_type[]} array must precisely match the declared input behavior, and any mismatch, e.g., expecting \texttt{INT\_RESULT} but receiving a string-cast input, can result in either incorrect parsing or segmentation faults. This sensitivity is further exacerbated when dealing with numeric values passed as \texttt{STRING\_RESULT}, requiring explicit string-to-integer conversions inside the plugin. Hermes handles this by explicitly checking and parsing each argument type and issuing warnings for unsupported patterns.
-
-Despite being written in C++, all Hermes UDFs must be registered using \texttt{extern ``C''} linkage, preventing name mangling and ensuring compatibility with MySQL's dynamic symbol resolution. However, this also restricts the use of modern C++ idioms such as RAII, smart pointers, or class encapsulation for memory management. Instead, plugin state (e.g., ciphertext handles, encryption context) must be tracked manually via global heap allocations or pointer-passing, with careful attention to lifecycle management to avoid memory leaks or dangling references across UDF calls.
-
-Linking OpenFHE into the MySQL runtime poses its own set of challenges. Since MySQL does not inherit environment variables like \texttt{LD\_LIBRARY\_PATH} when started as a systemd service, shared libraries such as \texttt{libOPENFHEpke.so} are not found unless explicitly injected. Hermes addresses this by generating a \texttt{systemd} override file to add the plugin directory to the runtime path and restarting the MySQL daemon after deployment. This step is essential but poorly documented, and its omission results in non-descriptive runtime errors about unresolved symbols in the shared object.
-
-A particularly subtle issue involves the generation and use of Galois keys for slot rotation operations. OpenFHE requires that Galois keys be generated explicitly after context and secret key initialization, and failure to do so results in undocumented runtime errors or silent failures during rotation-based operations. Moreover, if multiple plugins generate conflicting Galois keys or overwrite global state, the system may enter a corrupted state, especially if MySQL reuses shared library handles across multiple function invocations. Hermes mitigates this by generating all required keys exactly once at system initialization and disallowing repeated or partial regeneration during runtime.
+Once the core context is established in memory, we explicitly enable the required OpenFHE operational modes, including Public Key Encryption (PKE), Leveled Somewhat Homomorphic Encryption (SHE), and Advanced SHE to unlock evaluation keys. Key generation occurs once at system startup. \texttt{KeyGen()} is invoked to produce the public and secret keys. Subsequently, Hermes generates the necessary auxiliary cryptographic materials. This involves calling \texttt{EvalMultKeyGen()} to create relinearization keys and \texttt{EvalSumKeyGen()} along with \texttt{EvalAtIndex()} to generate the Galois keys required for slot rotation algorithms. All cryptographic keys and the evaluation context are encapsulated within static C++ global variables protected by thread-safe initialization flags.
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -701,12 +740,11 @@ This paper introduces Hermes, a prototype system designed to execute secure and 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{ref}
 
-\newpage
+
+\clearpage
 \appendix
 
-\section{Appendix}
-
-\subsection{Full Proofs}
+\section{Full Proofs}
 
 \begin{lemma}
 Let $\mathcal{C}$ be the set of ciphertexts generated and manipulated by Hermes. Then under the assumption that the base FHE scheme (BFV) is IND-CPA secure, the ciphertext $c \in \mathcal{C}$ remains IND-CPA secure throughout all operations in Hermes.
@@ -824,5 +862,44 @@ The decrypted result satisfies:
 \]
 which matches the true plaintext sum across all tuples.
 \end{proof}
+
+\section{Extended Implementation Details}
+\label{sec:appendix_implementation}
+
+\subsection{MySQL UDF Lifecycle and Memory Handling}
+
+The integration of Hermes into MySQL relies on the User Defined Function (UDF) interface, which follows a strictly defined execution lifecycle. For each SQL function call, the MySQL engine invokes a sequence of initialization, execution, and deinitialization routines. The \texttt{\_init} function is responsible for pre allocating memory and validating the input arguments provided by the SQL parser. During this phase, Hermes performs strict checks on the number of arguments and their associated types to prevent runtime segmentation faults.
+
+The core computational logic resides in the \texttt{\_func} routine, which is executed for every row in the result set. To avoid the overhead of repeated memory allocations, Hermes utilizes the \texttt{ptr} field in the \texttt{UDF\_INIT} structure to maintain persistent states across row invocations. This is particularly vital for maintaining the cryptographic context and temporary evaluation buffers. Finally, the \texttt{\_deinit} function ensures that all heap allocated objects, including ciphertext pointers and intermediate vectors, are properly released to prevent memory leaks in long running database sessions.
+
+\subsection{Foreign Function Interface and Data Parsing}
+
+Bridging the gap between the MySQL C based API and the modern C++17 logic of OpenFHE requires a robust Foreign Function Interface (FFI). All data entering the plugin arrives as raw C pointers within the \texttt{UDF\_ARGS} structure. Hermes implements a custom parsing layer to map these inputs to internal data structures. When numeric data is passed as a string result, the system utilizes the standard \texttt{std::istringstream} object to perform safe conversion to 64 bit signed integers.
+
+For ciphertext management, Hermes avoids the cost of serializing large objects into SQL blobs. Instead, we return a hexadecimal string representation of the memory address. This pointer based approach allows subsequent UDF calls to resolve the ciphertext object by casting the string back to a \texttt{Ciphertext<DCRTPoly>} pointer. To ensure memory safety, every pointer resolution step is accompanied by a validation check to confirm that the address resides within the expected memory segment of the MySQL process.
+
+\subsection{Cryptographic Context and Key Initialization}
+
+The security and functionality of Hermes depend on the correct initialization of the OpenFHE environment. We configure a shared encryption context during the plugin load phase to ensure that all functions operate under consistent parameters. The system utilizes the BFV scheme with a ring dimension of $N = 2^{14}$ and a plaintext modulus of $t = 65537$[cite: 1237]. These engineering choices are optimized to provide sufficient multiplicative depth for complex relational queries while maintaining sub millisecond latency for basic additions.
+
+Key management is handled through a singleton pattern to prevent redundant key generation. At startup, the system invokes \texttt{KeyGen()} to produce the primary key pair. Subsequently, we generate specialized evaluation keys required for homomorphic operations. This includes relinearization keys by \texttt{EvalMultKeyGen()} and a set of Galois keys produced through the \texttt{EvalSumKeyGen()} and \texttt{EvalAtIndex()} methods. These keys are stored in volatile memory and protected by mutex locks to ensure thread safe access during concurrent query execution.
+
+\subsection{Deployment and Linker Configurations}
+
+Deploying Hermes on production environments like Ubuntu 24.04 LTS requires careful configuration of the dynamic linker. Since the MySQL daemon runs as a restricted service, it does not naturally inherit the user environment variables. To make the OpenFHE shared libraries visible to the \texttt{mysqld} process, we generate a systemd override file that explicitly sets the \texttt{LD\_LIBRARY\_PATH}. This ensures that the plugin can resolve dependencies like \texttt{libOPENFHEcore.so} at runtime.
+
+Furthermore, all external entry points are wrapped in \texttt{extern 'C'} linkage to maintain compatibility with the MySQL symbol resolution logic. The build process is managed via CMake, which handles the static linking of core cryptographic modules while keeping the high level UDF logic relocatable. Diagnostic information and error messages are redirected to the standard error stream, which is automatically captured by the MySQL error log for offline analysis and troubleshooting.
+
+\subsection{Security Engineering and Data Obliviousness}
+
+Hermes is designed to prevent information leakage through execution patterns or side channels. The homomorphic update logic, including insertions and deletions, is implemented using a sequence of fixed operations. For example, the shift and mask procedure for slot updates uses a constant number of Galois rotations and multiplications regardless of the target index. This data oblivious design ensures that the server cannot infer which record was modified by observing the timing or the sequence of API calls.
+
+We also implement rigorous bounds checking for all slot based operations. Any attempt to access an index beyond the logical length of the packed ciphertext results in an immediate error return. The auxiliary metadata slot, which stores the local sum, is protected from direct user modification. These defensive measures prevent malformed SQL queries from compromising the structural integrity of the encrypted database or triggering buffer overflows.
+
+\subsection{Benchmarking and Decryption Harness}
+
+To facilitate performance profiling without the overhead of network communication, Hermes includes a benchmarking harness that allows for local decryption within the server process. This interface is strictly restricted to experimental environments and is not intended for production use. It provides dedicated UDFs like \texttt{HERMES\_DEC\_VECTOR\_SUMMABLE()} to extract scalar results from encrypted aggregates.
+
+The harness utilizes a resident secret key to decrypt result ciphertexts and convert them into standard C++ vectors. We optimize this process by extracting only the requested slot to minimize memory copying. The instrumentation also captures the precise execution time of each homomorphic operator, allowing us to isolate the cryptographic latency from the SQL engine overhead. This detailed profiling was essential for validating the performance gains achieved through the auxiliary sum embedding technique and the vectorized packing model.
 
 \end{document}
