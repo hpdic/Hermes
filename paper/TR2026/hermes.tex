@@ -614,7 +614,7 @@ We structure experiments around four research questions (RQs):
     \item RQ5: To what extent does the vectorized packing model mitigate physical storage inflation across diverse relational datasets? We evaluate this in Section~\ref{sec:eval_storage}.
 \end{itemize}
 
-\subsection{Scope of Comparison} 
+\paragraph{Scope of Comparison} 
 
 While several homomorphic prototypes such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384} exist, we exclude them from empirical comparison for two reasons. First, these works typically function as standalone programmatic scripts rather than being integrated into the execution pipeline of a production-grade DBMS. Second, Hermes prioritizes strict IND-CPA security without any access pattern leakage, whereas those alternatives rely on interactive protocols or property-preserving encryption that inherently weaken the threat model. Thus, we benchmark against Intel IPCL~\cite{ipcl_github} and OpenFHE~\cite{openfhe} to establish a baseline using identical cryptographic security levels.
 
@@ -710,7 +710,7 @@ Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) 
 This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent updates.
 
 \subsection{Quantitative Storage Efficiency}
-\label{sec:storage_eval}
+\label{sec:eval_storage}
 
 To answer RQ5, we evaluate the physical storage footprint of Hermes compared to the Singular FHE baseline. For the hg38 dataset, which contains 34,424 records, the Singular FHE approach generates one independent ciphertext per tuple. At a ring dimension of $N = 2^{14}$, each BFV ciphertext object occupies approximately 512 KB of memory. Thus, the total storage requirement for the Singular baseline exceeds 17 GB. 
 
@@ -732,13 +732,15 @@ hg38 & 17.2 GB & 2.6 MB & 6615x \\ \hline
 \section{Discussion and Limitations}
 \label{sec:discussion}
 
-While Hermes demonstrates significant performance improvements for encrypted query processing, integrating fully homomorphic encryption into a relational database engine introduces several architectural trade offs. This section discusses the current limitations of Hermes and outline potential avenues for future research.
+% While Hermes demonstrates significant performance improvements for encrypted query processing, integrating fully homomorphic encryption into a relational database engine introduces several architectural trade offs. This section discusses the current limitations of Hermes and outline potential avenues for future research.
 
 \subsection{Multi-Attribute Operations and Table Joins}
 
-The current implementation of Hermes focuses primarily on single attribute analytical workloads, which represent the fundamental computational bottleneck in homomorphic databases. Our vectorized packing model securely accelerates in-place updates and aggregations for isolated columns. 
+Hermes is currently implemented and fully evaluated on single-attribute analytical workloads, which represent the primary performance bottleneck in homomorphically encrypted databases. Extending the system to multi-attribute tables is straightforward and requires no modifications to the core packing layout, mutability primitives, or aggregation mechanism. For instance, we could simply adopt a columnar packing strategy: each attribute is independently packed into its own ciphertext while sharing the same group ID across columns. This design fully reuses the existing SIMD-aware layout and auxiliary-sum slot, incurring no additional cryptographic overhead for updates or single-table aggregations. The only change is in the query execution layer, which coordinates the corresponding per-attribute ciphertexts. 
 
-However, real-world queries often involve multi-attribute predicates and complex table joins. Extending Hermes to support these operations requires rethinking the packing layout. In multi-attribute tables, a columnar packing strategy could be employed where each attribute is encrypted into a separate ciphertext, maintaining a shared group ID across columns. Furthermore, executing homomorphic joins requires cross-ciphertext multiplications followed by masking, which significantly consumes the multiplicative depth (i.e., noise budget) of the FHE scheme. Future work will explore integrating specialized bootstrapping techniques or layout-aware join algorithms to support relational algebra over multiple tables.
+Table joins are intentionally kept outside the current scope of Hermes. 
+For example, while equi-joins are a fundamental relational operation, they require cross-ciphertext multiplications to test equality under encryption, which significantly increases multiplicative depth and noise growth in pure BFV. 
+Supporting full relational joins remains an important direction for future work.
 
 \subsection{Concurrency Control and Ciphertext Locks}
 
@@ -766,9 +768,9 @@ This paper introduces Hermes, a prototype system designed to execute secure and 
 
 % Moving forward, we plan to extend the capabilities of Hermes to support more complex relational algebraic operations, such as secure table joins and nested subqueries, which remain challenging in the fully homomorphic domain. We also aim to explore hardware acceleration techniques using GPUs or FPGAs to further reduce the latency of homomorphic shift and mask operations during high-volume transaction processing. Additionally, while the current integration is optimized for MySQL, adapting the Hermes architecture to other major database management systems could broaden its applicability across different enterprise environments. Finally, investigating multi-key homomorphic encryption schemes would allow Hermes to support collaborative data analytics scenarios where multiple independent entities can securely query combined encrypted datasets without sharing their private keys.
 
-% \section*{Acknowledgments}
+\section*{Acknowledgments}
 
-% Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
+Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{ref}
