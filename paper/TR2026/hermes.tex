@@ -726,6 +726,29 @@ Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship betwee
 Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) reveal that the performance of in-place modifications remains entirely decoupled from the packing scale. The time required to perform 100 insertions or 100 deletions stays roughly constant across all scales. Specifically, the batch insertions stabilize at approximately 12.6 seconds, while the corresponding deletions take about 5.4 seconds. 
 This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent updates.
 
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+While Hermes demonstrates significant performance improvements for encrypted query processing, integrating fully homomorphic encryption into a relational database engine introduces several architectural trade offs. In this section, we discuss the current limitations of our prototype and outline potential avenues for future research.
+
+\subsection{Multi-Attribute Operations and Table Joins}
+
+The current implementation of Hermes focuses primarily on single attribute analytical workloads, which represent the fundamental computational bottleneck in homomorphic databases. Our vectorized packing model securely accelerates in-place updates and aggregations for isolated columns. 
+
+However, real-world queries often involve multi-attribute predicates and complex table joins. Extending Hermes to support these operations requires rethinking the packing layout. In multi-attribute tables, a columnar packing strategy could be employed where each attribute is encrypted into a separate ciphertext, maintaining a shared group ID across columns. Furthermore, executing homomorphic joins requires cross-ciphertext multiplications followed by masking, which significantly consumes the multiplicative depth (noise budget) of the FHE scheme. Future work will explore integrating specialized bootstrapping techniques or layout-aware join algorithms to support relational algebra over multiple encrypted tables.
+
+\subsection{Concurrency Control and Ciphertext Locks}
+
+A fundamental consequence of the SIMD-packed data model is that multiple relational tuples are physically collocated within a single ciphertext object. While this structure exponentially increases encryption throughput and amortizes aggregation costs, it introduces challenges for database concurrency control.
+
+When two concurrent transactions attempt to insert or delete different tuples belonging to the same logical group, they must modify the identical underlying ciphertext. In the current Hermes prototype, we rely on the native locking protocols of the MySQL engine, which essentially escalates row-level modifications into group-level ciphertext locks to prevent race conditions. Under highly concurrent write workloads, this can lead to write amplification and lock contention. To mitigate this, future iterations of the system could implement an optimistic concurrency control (OCC) mechanism tailored for homomorphic operations, allowing non-conflicting slot updates to be temporarily buffered and merged homomorphically before a final commit.
+
+\subsection{Fragmentation and Garbage Collection}
+
+Hermes performs data-oblivious deletions by homomorphically zeroing out the targeted slots and shifting the remaining payload. As records are continuously deleted, a packed ciphertext may accumulate a significant number of stale, empty slots, leading to internal fragmentation. Although these empty slots do not affect the correctness of global aggregate queries (since their values are logically zero), they decrease the overall storage efficiency of the database.
+
+Currently, Hermes treats these heavily deleted ciphertexts as semantically inert but retains them in storage to preserve structural consistency. To address this limitation in production environments, a background garbage collection mechanism, conceptually similar to the \emph{autovacuum daemon} in PostgreSQL, is desired. During periods of low system load, this daemon could identify sparse ciphertexts, homomorphically compact the remaining active slots, and merge multiple underutilized groups into a single densely packed ciphertext, thereby reclaiming storage space and maintaining optimal query throughput.
+
 \section{Conclusion}
 \label{sec:conclusion}
 
