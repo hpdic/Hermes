@@ -517,6 +517,17 @@ The primary advantage of Hermes lies in its reduction of the computational cost 
 
 This asymptotic improvement is the theoretical foundation for the significant speedups observed in our experimental evaluation. By shifting the complexity from rotation-heavy query time to lightweight update time, Hermes effectively bridges the gap between relational performance and cryptographic security.
 
+\subsubsection{Noise Budget Analysis}
+\label{sec:noise_derivation}
+
+To justify the sustainability of Hermes updates, we provide a formal analysis of the noise growth within the BFV encryption context. Let $V$ denote the noise variance of a ciphertext. In our implementation, the insertion and deletion primitives are composed of a ciphertext-plaintext multiplication followed by a Galois rotation. The noise growth for a ciphertext-plaintext multiplication is bounded by $V_{new} \leq t \cdot \text{poly}(N) \cdot V_{old}$, where $t = 65537$ and $N = 2^{14}$. Unlike ciphertext-ciphertext multiplications which lead to quadratic noise growth, our use of plaintext masks ensures that the noise increases only linearly per operation.
+
+Based on the parameters for a multiplicative depth of $d=2$, the initial noise budget is approximately 60 bits. Each update operation, including the Galois automorphism and relinearization, consumes approximately 1.1 bits of this budget. Consequently, the cumulative noise $V_{total}$ after $k$ updates follows the relation:
+\[
+\log_2(V_{total}) \approx \log_2(V_{initial}) + k \cdot \delta_{update},
+\]
+where $\delta_{update}$ represents the marginal noise increase. Setting the safety threshold before decryption failure, our derivation indicates that a packed ciphertext can sustain at least 52 sequential updates ($k \approx 50$) before requiring a bootstrapping refresh. This capacity is sufficient for most relational update workloads where records are modified periodically rather than thousands of times per second within the same group.
+
 \section{System Implementation}
 \label{sec:implementation}
 
@@ -592,6 +603,7 @@ We structure experiments around four research questions (RQs):
     \item RQ2: What is the computational latency of performing secure in-place modifications such as record insertions and deletions over packed ciphertexts? We explore this in Section~\ref{sec:eval_update}.
     \item RQ3: How does the auxiliary local-sum embedding technique perform against traditional cryptographic aggregation queries in isolated microbenchmarks? We answer this in Section~\ref{sec:eval_microbenchmarks}.
     \item RQ4: How does the logical group capacity influence the overall execution latency across different relational operators? We analyze this in Section~\ref{sec:eval_scalability}.
+    \item RQ5: To what extent does the vectorized packing model mitigate physical storage inflation across diverse relational datasets? We evaluate this in Section~\ref{sec:eval_storage}.
 \end{itemize}
 
 \subsection{Scope of Comparison} 
@@ -689,6 +701,26 @@ Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship betwee
 Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) reveal that the performance of in-place modifications remains entirely decoupled from the packing scale. The time required to perform 100 insertions or 100 deletions stays roughly constant across all scales. Specifically, the batch insertions stabilize at approximately 12.6 seconds, while the corresponding deletions take about 5.4 seconds. 
 This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent updates.
 
+\subsection{Quantitative Storage Efficiency}
+\label{sec:storage_eval}
+
+To answer RQ5, we evaluate the physical storage footprint of Hermes compared to the Singular FHE baseline. For the hg38 dataset, which contains 34,424 records, the Singular FHE approach generates one independent ciphertext per tuple. At a ring dimension of $N = 2^{14}$, each BFV ciphertext object occupies approximately 512 KB of memory. Thus, the total storage requirement for the Singular baseline exceeds 17 GB. 
+
+By contrast, Hermes utilizes its SIMD-aware data model to batch 8192 tuples per ciphertext[cite: 381, 1222]. For the same hg38 dataset, Hermes requires only 5 physical ciphertexts to store the entire logical table. Our empirical measurements show a total storage footprint of only 2.6 MB for Hermes, representing a reduction of over 6,000x in physical storage volume. Table~\ref{tab:storage_summary} provides a summary of the storage footprints across all evaluated datasets. This drastic optimization is a result of slot utilization and the elimination of the massive object-level metadata overhead associated with maintaining tens of thousands of individual FHE objects in the MySQL engine.
+
+\begin{table}[ht]
+\centering
+\caption{Storage Footprint Comparison Across Datasets}
+\label{tab:storage_summary}
+\begin{tabular}{l c c c}
+\hline
+Dataset & Singular FHE & Hermes Space & Reduction \\ \hline
+COVID 19 & 170.5 MB & 0.5 MB & 341x \\
+Bitcoin & 543.0 MB & 0.5 MB & 1086x \\
+hg38 & 17.2 GB & 2.6 MB & 6615x \\ \hline
+\end{tabular}
+\end{table}
+
 \section{Discussion and Limitations}
 \label{sec:discussion}
 
@@ -711,6 +743,13 @@ When two concurrent transactions attempt to insert or delete different tuples be
 Hermes performs data-oblivious deletions by homomorphically zeroing out the targeted slots and shifting the remaining payload. As records are continuously deleted, a packed ciphertext may accumulate a significant number of stale, empty slots, leading to internal fragmentation. Although these empty slots do not affect the correctness of global aggregate queries (since their values are logically zero), they decrease the overall storage efficiency of the database.
 
 Currently, Hermes treats these heavily deleted ciphertexts as semantically inert but retains them in storage to preserve structural consistency. To address this limitation in production environments, a background garbage collection mechanism, conceptually similar to the \emph{autovacuum daemon} in PostgreSQL, is desired. During periods of low system load, this daemon could identify sparse ciphertexts, homomorphically compact the remaining active slots, and merge multiple underutilized groups into a single densely packed ciphertext, thereby reclaiming storage space and maintaining optimal query throughput.
+
+\subsection{Schema Evolution and Grouping Flexibility}
+\label{sec:flexibility}
+
+Relational databases in production environments frequently undergo schema evolution and re-partitioning. A potential limitation of the Hermes packed model is the static nature of the grouping capacity $n$, which is determined by the ring dimension $N$ at the time of cryptographic context initialization. 
+
+If the database administrator decides to increase the group capacity to further amortize costs, existing ciphertexts must be re-packed. This transition can be handled through two different strategies. The first is a client-side re-encryption approach, which is efficient but requires data movement. The second is a homomorphic expansion circuit that merges multiple sparse ciphertexts into a single dense ciphertext. While the homomorphic approach preserves end-to-end privacy, it incurs significant computational overhead due to the required rotations. Furthermore, the choice of the group ID also influences the sparsity of the packed ciphertexts. Future research will focus on developing dynamic packing algorithms that can adapt the slot utilization based on real-time query patterns and storage constraints, allowing for a more flexible mapping between logical tables and cryptographic vectors.
 
 \section{Conclusion}
 \label{sec:conclusion}
