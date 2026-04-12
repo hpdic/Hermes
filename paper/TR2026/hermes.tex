@@ -24,6 +24,8 @@
 \usepackage{listings}
 \usepackage{xcolor}
 
+\usepackage{algpseudocode}
+
 \lstdefinelanguage{SQL}{
   morekeywords={SELECT,FROM,WHERE,ORDER,BY,LIMIT,AND,OR,NOT,AS,ON,IN,IS,NULL,JOIN,LEFT,RIGHT,OUTER,INNER,GROUP,HAVING,ENC,Enc},
   sensitive=false,
@@ -262,6 +264,71 @@ m = (v_0, v_1, \dots, v_{n-2}, s) \in \mathbb{Z}_t^n,
 where $t$ is the plaintext modulus. The extended vector $m$ is then passed to the cryptographic API to generate a packed plaintext object, which is subsequently encrypted into a ciphertext.
 
 This layout effectively reserves the final slot at index $n-1$ as a local accumulator. Because BFV ciphertexts support SIMD-style evaluations, all data and the auxiliary sum coexist securely within a single ciphertext boundary. Since the sum is computed in the clear before encryption, this initial embedding incurs no homomorphic overhead. By formalizing this static data model, Hermes transforms complex multi-tuple structures into manageable relational vectors, setting the stage for the dynamic mutability primitives discussed in the next section.
+
+\subsection{Data-Oblivious Mutability Primitives}
+\label{sec:primitives}
+
+To allow a single packed ciphertext to dynamically reflect the updates of mutable database records, Hermes supports record-level modifications directly within the encrypted domain. Unlike conventional systems that require downloading, decrypting, and re-encrypting the entire ciphertext for a single update, our design ensures that mutability is achieved in-place. We design a homomorphic slot manipulation interface that incorporates plaintext masking, Galois shifting, and slot-wise additions.
+
+\subsubsection{Homomorphic Insertion}
+
+Hermes supports the in-place insertion of plaintext values into packed ciphertexts. The objective is to insert a new value $v$ into logical slot $i$ of an existing ciphertext $c$, where slots $i$ through $n-2$ may already contain payload data. Since ciphertexts are encoded as fixed-size relational vectors, this operation requires shifting all subsequent entries rightward by one position. This is analogous to an array insertion, yet it is performed entirely under encryption.
+
+The procedure utilizes homomorphic Galois rotations and plaintext masks. We first isolate the tail of the vector using a preservation mask and shift it rightward. Concurrently, we isolate the head of the vector to keep the preceding records intact. The new value is then encrypted and injected into the target slot. Finally, the auxiliary local sum at the end of the ciphertext is synchronously updated via a scalar plaintext addition.
+
+We formalize this procedure in Algorithm~\ref{alg:insertion}.
+
+\begin{algorithm}[ht]
+\caption{Data-Oblivious Homomorphic Insertion}
+\label{alg:insertion}
+\begin{algorithmic}[1]
+\Require Ciphertext $c$, Target index $i$, Plaintext $v$, Capacity $n$
+\Ensure Updated Ciphertext $c_{new}$
+\State $m_{head} \gets \text{vector with 1s in } [0, i-1] \text{ and 0s elsewhere}$
+\State $m_{tail} \gets \text{vector with 1s in } [i, n-3] \text{ and 0s elsewhere}$
+\State $c_{head} \gets \mathsf{EvalMult}(c, m_{head})$
+\State $c_{tail} \gets \mathsf{EvalMult}(c, m_{tail})$
+\State $c_{shifted} \gets \mathsf{EvalRotate}(c_{tail}, 1)$
+\State $m_v \gets \text{vector with } v \text{ at index } i \text{ and 0s elsewhere}$
+\State $c_v \gets \mathsf{Encrypt}(m_v)$
+\State $c_{payload} \gets \mathsf{EvalAdd}(c_{head}, \mathsf{EvalAdd}(c_{shifted}, c_v))$
+\State $m_{sum} \gets \text{vector with } v \text{ at index } n-1 \text{ and 0s elsewhere}$
+\State $c_{new} \gets \mathsf{EvalAdd}(c_{payload}, m_{sum})$
+\State \Return $c_{new}$
+\end{algorithmic}
+\end{algorithm}
+
+This operation is executed entirely within the database server process using the OpenFHE API. It leaks no information regarding which slot was modified or what value was inserted, maintaining a completely data-oblivious execution profile. When a ciphertext reaches its maximum slot capacity, Hermes rejects further insertions, maintaining a strict one-to-one mapping between the database group and the ciphertext.
+
+\subsubsection{Homomorphic Deletion}
+
+Hermes enables encrypted deletion by simulating a logical left-shift over the underlying slots. The goal is to remove the value at slot $i$ and maintain a compacted layout where all subsequent values are shifted leftward to fill the void. The final payload slot is then cleared.
+
+The deletion procedure follows a symmetric logic to insertion. Hermes isolates the subvector corresponding to slots $i+1$ through $n-2$ and rotates it leftward by one position. A zeroing mask is subsequently applied to clear the final payload slot, which would otherwise contain a stale duplicate value due to the shift. The original head of the vector is preserved and merged with the shifted tail. The local sum is then decremented by the deleted value via plaintext subtraction.
+
+Algorithm~\ref{alg:deletion} details the formal steps for this operation.
+
+\begin{algorithm}[ht]
+\caption{Data-Oblivious Homomorphic Deletion}
+\label{alg:deletion}
+\begin{algorithmic}[1]
+\Require Ciphertext $c$, Target index $i$, Plaintext $v$, Capacity $n$
+\Ensure Updated Ciphertext $c_{new}$
+\State $m_{head} \gets \text{vector with 1s in } [0, i-1] \text{ and 0s elsewhere}$
+\State $m_{tail} \gets \text{vector with 1s in } [i+1, n-2] \text{ and 0s elsewhere}$
+\State $c_{head} \gets \mathsf{EvalMult}(c, m_{head})$
+\State $c_{tail} \gets \mathsf{EvalMult}(c, m_{tail})$
+\State $c_{shifted} \gets \mathsf{EvalRotate}(c_{tail}, -1)$
+\State $z \gets \text{vector with } 0 \text{ at index } n-2 \text{ and 1s elsewhere}$
+\State $c_{clean} \gets \mathsf{EvalMult}(c_{shifted}, z)$
+\State $c_{payload} \gets \mathsf{EvalAdd}(c_{head}, c_{clean})$
+\State $m_{sum} \gets \text{vector with } -v \text{ at index } n-1 \text{ and 0s elsewhere}$
+\State $c_{new} \gets \mathsf{EvalAdd}(c_{payload}, m_{sum})$
+\State \Return $c_{new}$
+\end{algorithmic}
+\end{algorithm}
+
+All steps are performed homomorphically, ensuring slot occupancy consistency and maintaining statistical privacy. If all payload slots are deleted, the ciphertext is treated as semantically inert. It contributes nothing to aggregate queries, and the auxiliary sum naturally evaluates to zero, guaranteeing that global aggregation remains perfectly accurate even in the presence of entirely empty groups.
 
 
 % \section{Hermes: Native FHE for Relational Databases}
