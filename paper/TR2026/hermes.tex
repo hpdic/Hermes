@@ -503,7 +503,7 @@ The primary advantage of Hermes lies in its reduction of the computational cost 
 
 \begin{table}[ht]
 \centering
-\caption{Computational Complexity Comparison per Ciphertext}
+\caption{Computational Complexity Comparison}
 \label{tab:complexity}
 \begin{tabular}{lccc}
 \hline
@@ -554,6 +554,14 @@ This memory-centric layout minimizes I/O overhead during query execution. When o
 To ensure consistent cryptographic behavior across all SQL plugin functions, Hermes constructs a single shared encryption context during the initialization phase. This context is generated using the OpenFHE \texttt{GenCryptoContext} API. We parameterize the environment with a plaintext modulus $t = 65537$, a ring dimension $N = 2^{14}$, and a multiplicative depth $d = 2$. These parameters are selected to balance computational latency with a sufficient noise budget for query evaluations.
 
 Once the core context is established in memory, we explicitly enable the required OpenFHE operational modes, including Public Key Encryption (PKE), Leveled Somewhat Homomorphic Encryption (SHE), and Advanced SHE to unlock evaluation keys. Key generation occurs once at system startup. \texttt{KeyGen()} is invoked to produce the public and secret keys. Subsequently, Hermes generates the necessary auxiliary cryptographic materials. This involves calling \texttt{EvalMultKeyGen()} to create relinearization keys and \texttt{EvalSumKeyGen()} along with \texttt{EvalAtIndex()} to generate the Galois keys required for slot rotation algorithms. All cryptographic keys and the evaluation context are encapsulated within static C++ global variables protected by thread-safe initialization flags.
+
+\subsection{Challenges and Learned Lessons}
+
+Integrating complex cryptographic libraries into a mature relational engine reveals several non trivial engineering challenges that are often overlooked in theoretical FHE literature. One primary obstacle is the implicit memory management of the MySQL UDF interface. Specifically, the default 256-byte return buffer for string results is a silent constraint. Exceeding this limit without manual re allocation or careful length tracking leads to silent truncation or memory corruption. Hermes addresses this by implementing a rigorous length monitoring layer that bypasses the default buffer when handling large metadata footprints, ensuring that the heavy cryptographic pointers remain intact across the foreign function interface.
+
+Furthermore, maintaining a consistent encryption context across isolated SQL function calls requires a delicate balance between C linkage compatibility and modern C++ idioms. Because UDFs require \texttt{extern `C'} visibility for symbol resolution, the use of RAII and smart pointers for managing OpenFHE objects is restricted at the entry points. This forces the system to rely on manual pointer passing and global heap management, which increases the risk of memory leaks if the MySQL thread handling logic deviates from expected lifecycles. Our experience suggests that the lack of native support for C++ class instances in the UDF interface is a significant hurdle for integrating modern homomorphic libraries.
+
+Finally, we observed that the initialization sequence for homomorphic evaluation keys is extremely sensitive. Failure to generate Galois keys in the precise order, or attempting to regenerate them within a shared library handle, results in undocumented runtime failures that are difficult to trace via standard database logs. Hermes mitigates this by enforcing a singleton-driven initialization protocol that ensures that global cryptographic states are established exactly once during the server startup phase. 
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -706,7 +714,7 @@ This constant time complexity is a direct manifestation of the underlying homomo
 
 To answer RQ5, we evaluate the physical storage footprint of Hermes compared to the Singular FHE baseline. For the hg38 dataset, which contains 34,424 records, the Singular FHE approach generates one independent ciphertext per tuple. At a ring dimension of $N = 2^{14}$, each BFV ciphertext object occupies approximately 512 KB of memory. Thus, the total storage requirement for the Singular baseline exceeds 17 GB. 
 
-By contrast, Hermes utilizes its SIMD-aware data model to batch 8192 tuples per ciphertext[cite: 381, 1222]. For the same hg38 dataset, Hermes requires only 5 physical ciphertexts to store the entire logical table. Our empirical measurements show a total storage footprint of only 2.6 MB for Hermes, representing a reduction of over 6,000x in physical storage volume. Table~\ref{tab:storage_summary} provides a summary of the storage footprints across all evaluated datasets. This drastic optimization is a result of slot utilization and the elimination of the massive object-level metadata overhead associated with maintaining tens of thousands of individual FHE objects in the MySQL engine.
+By contrast, Hermes utilizes its SIMD-aware data model to batch 8192 tuples per ciphertext[cite: 381, 1222]. For the same hg38 dataset, Hermes requires only 5 physical ciphertexts to store the entire logical table. Our empirical measurements show a total storage footprint of only 2.6 MB for Hermes, representing a reduction of over 6,000x in physical storage volume. Table~\ref{tab:storage_summary} provides a summary of the storage footprints across all evaluated datasets. This optimization is a result of slot utilization and the elimination of the massive object-level metadata overhead associated with maintaining tens of thousands of individual FHE objects in the MySQL engine.
 
 \begin{table}[ht]
 \centering
@@ -724,13 +732,13 @@ hg38 & 17.2 GB & 2.6 MB & 6615x \\ \hline
 \section{Discussion and Limitations}
 \label{sec:discussion}
 
-While Hermes demonstrates significant performance improvements for encrypted query processing, integrating fully homomorphic encryption into a relational database engine introduces several architectural trade offs. In this section, we discuss the current limitations of our prototype and outline potential avenues for future research.
+While Hermes demonstrates significant performance improvements for encrypted query processing, integrating fully homomorphic encryption into a relational database engine introduces several architectural trade offs. This section discusses the current limitations of Hermes and outline potential avenues for future research.
 
 \subsection{Multi-Attribute Operations and Table Joins}
 
 The current implementation of Hermes focuses primarily on single attribute analytical workloads, which represent the fundamental computational bottleneck in homomorphic databases. Our vectorized packing model securely accelerates in-place updates and aggregations for isolated columns. 
 
-However, real-world queries often involve multi-attribute predicates and complex table joins. Extending Hermes to support these operations requires rethinking the packing layout. In multi-attribute tables, a columnar packing strategy could be employed where each attribute is encrypted into a separate ciphertext, maintaining a shared group ID across columns. Furthermore, executing homomorphic joins requires cross-ciphertext multiplications followed by masking, which significantly consumes the multiplicative depth (noise budget) of the FHE scheme. Future work will explore integrating specialized bootstrapping techniques or layout-aware join algorithms to support relational algebra over multiple encrypted tables.
+However, real-world queries often involve multi-attribute predicates and complex table joins. Extending Hermes to support these operations requires rethinking the packing layout. In multi-attribute tables, a columnar packing strategy could be employed where each attribute is encrypted into a separate ciphertext, maintaining a shared group ID across columns. Furthermore, executing homomorphic joins requires cross-ciphertext multiplications followed by masking, which significantly consumes the multiplicative depth (i.e., noise budget) of the FHE scheme. Future work will explore integrating specialized bootstrapping techniques or layout-aware join algorithms to support relational algebra over multiple tables.
 
 \subsection{Concurrency Control and Ciphertext Locks}
 
