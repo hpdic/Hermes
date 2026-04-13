@@ -149,65 +149,13 @@ where the arithmetic is component-wise modulo \( t \). In addition, the BFV sche
 \mathsf{EvalRotate}(\mathsf{Enc}(\mathbf{m}), r) = \mathsf{Enc}((m_{(i+r) \bmod n})_{i=0}^{n-1}).
 \]
 
-Hermes leverages this packing structure to encode multiple database tuples into a single ciphertext. This design enables parallel evaluation, slot-wise updates, and sublinear aggregation. Importantly, all packing and update logic remains entirely within the encrypted domain, without leaking intermediate values or structural metadata.
+Hermes leverages this packing structure to encode multiple database tuples into a single ciphertext. This design enables parallel evaluation, slot-wise updates, and sublinear aggregation. Of note, all packing and update logic remains entirely within the encrypted domain, without leaking intermediate values or structural metadata.
 
 In addition, the BFV scheme supports automorphism-based slot rotation using Galois group actions. For any \( r \in \mathbb{Z} \), a cyclic slot rotation is realized via the Galois automorphism \( \sigma_r: X \mapsto X^r \mod (X^N + 1) \), which acts on ciphertexts by permuting their internal slot layout. To evaluate this transformation homomorphically, the client must precompute and upload the corresponding Galois keys:
 \[
 \mathsf{EvalAtIndex}(\mathsf{Enc}(\mathbf{m}), r) = \mathsf{Enc}((m_{(i+r)\bmod n})_{i=0}^{n-1}),
 \]
 where the rotation index \( r \) corresponds to a specific automorphism in the Galois group \( \operatorname{Gal}(R_q / \mathbb{Q}) \). These keys enable Hermes to perform selective slot access, masking, and reorganization within encrypted vectors while preserving semantic security.
-
-% \subsection{Provable Security}
-% \label{sec:prelim-security}
-
-% Semantic security for public-key encryption is captured by the notion of indistinguishability under chosen-plaintext attack (IND-CPA). Let $\Pi = (\mathsf{KeyGen},\ \mathsf{Encrypt},\ \mathsf{Decrypt},\ \mathsf{EvalAdd},\ \mathsf{EvalMult})$ be a probabilistic encryption scheme defined over a message space $\mathcal{M}$ and a ciphertext space $\mathcal{C}$. The scheme $\Pi$ is IND-CPA secure if no probabilistic polynomial-time (PPT) adversary can, with non-negligible advantage, distinguish between the encryptions of any two chosen messages in $\mathcal{M}$.
-
-% Formally, consider the following security game between a challenger \( \mathcal{C} \) and an adversary \( \mathcal{A} \):
-
-% \begin{enumerate}
-%   \item The challenger generates a key pair \( (\mathsf{pk}, \mathsf{sk}) \leftarrow \mathsf{KeyGen}(\lambda) \) for security parameter \( \lambda \), and sends \( \mathsf{pk} \) to \( \mathcal{A} \).
-%   \item The adversary chooses two equal-length messages \( m_0, m_1 \in \mathcal{M} \) and submits them to \( \mathcal{C} \).
-%   \item The challenger samples a uniform bit \( b \in \{0,1\} \), computes \( c^* \leftarrow \mathsf{Encrypt}_{\mathsf{pk}}(m_b) \), and returns \( c^* \) to \( \mathcal{A} \).
-%   \item The adversary outputs a guess \( b' \in \{0,1\} \).
-% \end{enumerate}
-
-% The scheme is IND-CPA secure if, for all PPT adversaries \( \mathcal{A} \),
-% \[
-% \left| \Pr\left[ \mathcal{A}(\mathsf{pk}, c^*) = b \right] - \frac{1}{2} \right| < \varepsilon(\lambda),
-% \]
-% where \( \varepsilon \) is a negligible function in \( \lambda \).
-
-% Modern fully homomorphic encryption schemes such as BFV, BGV, and CKKS satisfy IND-CPA under the hardness assumption of the Ring Learning With Errors (RLWE) problem. For these schemes, the encryption process is randomized: each plaintext message is masked with independently sampled noise and embedded in a structured polynomial ring, ensuring ciphertext distributions are computationally indistinguishable from random.
-
-% The multi-slot encoding structure introduced in BFV and related schemes does not weaken IND-CPA security. A vector \( \mathbf{m} = (m_0, \dots, m_{n-1}) \in \mathcal{M}^n \) is encrypted into a single ciphertext \( c \in \mathcal{C} \), but as long as \( \mathsf{Encrypt} \) remains probabilistic and the adversary lacks access to decryption oracles, semantic security extends to the full plaintext vector.
-
-% Subsequent homomorphic operations (e.g., addition, multiplication, rotation) are performed over ciphertexts without leaking intermediate plaintexts. Since the adversary cannot observe any result of decryption or affect the noise distribution, the composed evaluation remains semantically secure under standard composition theorems.
-
-% This security model provides the foundation upon which encrypted database systems can be constructed: so long as no decryption is performed server-side, and all query logic is implemented using semantically secure operations, the confidentiality of underlying plaintexts is preserved.
-
-% \subsection{MySQL User-Defined Functions (UDFs)}
-% \label{sec:prelim-udf}
-
-% MySQL supports native extensibility through \emph{User-Defined Functions} (UDFs), which allow developers to register custom functions written in C/C++ as shared objects. Once registered, a UDF can be invoked in SQL queries as a first-class function, operating over tuples during query execution.
-
-% A typical scalar UDF consists of the following exported routines:
-% \begin{itemize}
-%   \item \texttt{foo\_init} \quad ($\mathtt{foo\_init}$): initializes internal memory and checks argument types.
-%   \item \texttt{foo} \quad ($\mathtt{foo}$): performs the main per-tuple computation.
-%   \item \texttt{foo\_deinit} \quad ($\mathtt{foo\_deinit}$): releases allocated memory and closes resources.
-% \end{itemize}
-
-% Aggregate UDFs additionally implement:
-% \begin{itemize}
-%   \item \texttt{foo\_add} \quad ($\mathtt{foo\_add}$): accumulates intermediate results across tuples.
-%   \item \texttt{foo\_clear}, \texttt{foo\_reset} \quad ($\mathtt{foo\_clear}, \mathtt{foo\_reset}$): manage state lifecycle during grouping.
-% \end{itemize}
-
-% Each UDF receives input arguments via the \texttt{UDF\_ARGS} structure, which exposes parameter values and types through typed pointers. Output is returned through a caller-allocated buffer and must specify an explicit output length. All memory is managed manually, and no standard C++ types (e.g., \texttt{std::string}) may be used within the interface boundary.
-
-% This plugin model maps naturally to encrypted computation. The per-tuple stateless execution model aligns with ciphertext-level operations, while aggregate UDF hooks enable accumulation over encrypted records. Importantly, UDFs operate entirely inside the database engine, avoiding the need for external processes or client-managed cryptographic operations.
-
-% Hermes implements each homomorphic operation as a standalone UDF module, ensuring modularity and compatibility with SQL queries. Operations such as encryption, slot-wise insertion, and encrypted summation are exposed as standard SQL functions, compiled into dynamically loadable \texttt{.so} libraries. This design permits seamless integration with the MySQL query planner and execution engine, bridging encrypted computation with traditional relational workflows.
 
 \subsection{Alternative Secure Processing Paradigms}
 
@@ -409,7 +357,7 @@ In order to ensure that Hermes does not introduce any new leakage channels beyon
   \item \textit{No Adaptive Leakage:} Hermes does not reveal any intermediate plaintexts or randomness that could be used to link ciphertexts over time. All operations are performed homomorphically and reuse no client secrets post-encryption.
 \end{enumerate}
 
-Importantly, the Hermes data model and update interface preserve these properties without relying on secure multi-party computation (MPC), secure enclaves, or trusted client-side computation. All operations, such as packing, insert/delete, and aggregation, are fully executed on encrypted data within the untrusted database server.
+The proposed Hermes data model and update interface preserve these properties without relying on secure multi-party computation (MPC), secure enclaves, or trusted client-side computation. All operations, such as packing, insert/delete, and aggregation, are fully executed on encrypted data within the untrusted database server.
 
 This model captures realistic cloud deployment scenarios where users outsource encrypted databases to an untrusted cloud provider but wish to retain strong confidentiality guarantees under standard cryptographic assumptions (e.g., Ring-LWE hardness). We note that this threat model is stronger than many property-preserving encryption (PPE) systems, which often leak order, frequency, or access pattern by design.
 
@@ -449,7 +397,7 @@ Furthermore, all masking and slot operations are purely homomorphic and do not i
 
 To preserve data obliviousness within packed ciphertexts, Hermes ensures that individual insertions and deletions are indistinguishable with respect to their slot index. Since encrypted updates are performed via uniform homomorphic operations, namely Galois rotations, plaintext masking, and slot-wise additions, the adversary cannot determine which slot was modified given a before-and-after pair of ciphertexts. We formalize this guarantee using a slot-level indistinguishability game.
 
-We start by formally defining the game.
+We start by formally defining the game, as follows:
 \begin{definition}[Slot Update Indistinguishability Game]
 Let $c$ be an encrypted packed ciphertext over $n$ slots under BFV. Consider two update positions $i_0, i_1 \in \{0, \dots, n-2\}$. The goal of the adversary $\mathcal{A}$ is to distinguish whether an insertion was applied at position $i_0$ or $i_1$. The game proceeds as follows:
 \begin{enumerate}
