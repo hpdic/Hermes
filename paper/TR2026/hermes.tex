@@ -3,7 +3,7 @@
 
 
 % Title portion
-\title{Hermes: Towards Bridging Relational and Cryptographic Abstractions in Homomorphically Encrypted Databases}
+\title{Hermes: Efficient Homomorphic Aggregation over Mutable Packed Ciphertexts in Relational Databases}
 
 \author{Dongfang Zhao}
 \affiliation{
@@ -387,7 +387,7 @@ The proof relies on a reduction to the underlying IND-CPA security of the BFV sc
 
 Furthermore, the deterministic inclusion of auxiliary local sums and the application of public plaintext masks during updates do not introduce new leakage channels. All slot modifications are performed strictly within the encrypted domain without relying on secret-dependent control flows. Due to space constraints, the full formal reduction is deferred to our extended technical report.
 
-The full proof can be found in Appendix~\ref{appendix:proofs}, where we construct a simulator that interacts with the IND-CPA challenger for BFV and demonstrates that any advantage in distinguishing Hermes ciphertexts translates to an advantage against the base scheme, thus confirming that Hermes maintains IND-CPA security under the given assumptions.
+The full proof can be found in Appendix~\ref{appendix:proofs}, where we construct a simulator that interacts with the IND-CPA challenger for BFV and demonstrates that any advantage in distinguishing Hermes ciphertexts translates to an advantage against the base scheme.
 \end{proof}
 
 An important subtlety in Hermes is the deterministic embedding of auxiliary data into a fixed slot. While this creates a structural invariant, it does not violate IND-CPA since the data being embedded is functionally independent on other encrypted slots. From a cryptographic perspective, this corresponds to publishing a function $f(v_0, \dots, v_{n-2}) = s$ along with the encryption of the vector, which is a standard practice in FHE-based secure computation.
@@ -395,7 +395,7 @@ Furthermore, all masking and slot operations are purely homomorphic and do not i
 
 \subsubsection{Update Privacy via Slot-Level Obfuscation}
 
-To preserve data obliviousness within packed ciphertexts, Hermes ensures that individual insertions and deletions are indistinguishable with respect to their slot index. Since encrypted updates are performed via uniform homomorphic operations, namely Galois rotations, plaintext masking, and slot-wise additions, the adversary cannot determine which slot was modified given a before-and-after pair of ciphertexts. We formalize this guarantee using a slot-level indistinguishability game.
+To preserve data obliviousness within packed ciphertexts, Hermes ensures that individual insertions and deletions are indistinguishable with respect to their slot index. Since encrypted updates are performed via uniform homomorphic operations, namely Galois rotations, plaintext masking, and slot-wise additions, the adversary cannot determine which slot was modified given a before-and-after pair of ciphertexts. We formalize this using a slot-level indistinguishability game.
 
 We start by formally defining the game, as follows:
 \begin{definition}[Slot Update Indistinguishability Game]
@@ -424,7 +424,7 @@ We construct a proof by contradiction showing that an adversary cannot distingui
 
 Because the inserted or deleted payload is encrypted under the semantically secure BFV scheme before being homomorphically added to the masked vector, the resulting ciphertext maintains statistical uniformity. Any non-negligible advantage in guessing the updated slot would directly contradict the indistinguishability of the fresh ciphertext. The complete indistinguishability game is detailed in our technical report.
 
-The full proof can be found in Appendix~\ref{appendix:proofs}, where we show that any adversary $\mathcal{A}$ that can distinguish between updates at different slots can be used to construct a simulator that breaks the IND-CPA security of the underlying BFV scheme, thus confirming that Hermes maintains slot-level update privacy under the given assumptions.
+The full proof can be found in Appendix~\ref{appendix:proofs}, where we show that any adversary $\mathcal{A}$ that can distinguish between updates at different slots can be used to construct a simulator that breaks the IND-CPA security of the underlying BFV scheme.
 \end{proof}
 
 It is important to note that Hermes maintains \textit{position-hiding homomorphism} not by permuting slot values, but by maintaining the slot structure while masking all auxiliary effects of an update. The Galois shift operator is position-invariant modulo a known offset; the zeroing mask ensures no unintentional data leaks from adjacent slots. The reserved auxiliary slot (e.g., local sum) is updated using scalar plaintext operations, and its growth reflects only the net value change, not the specific position of insertion or deletion. This makes Hermes suitable for applications requiring structural privacy in addition to semantic security.
@@ -473,13 +473,29 @@ This asymptotic improvement is the theoretical foundation for the significant sp
 \subsubsection{Noise Budget Analysis}
 \label{sec:noise_derivation}
 
-To justify the sustainability of Hermes updates, we provide a formal analysis of the noise growth within the BFV encryption context. Let $V$ denote the noise variance of a ciphertext. In our implementation, the insertion and deletion primitives are composed of a ciphertext-plaintext multiplication followed by a Galois rotation. The noise growth for a ciphertext-plaintext multiplication is bounded by $V_{new} \leq t \cdot \text{poly}(N) \cdot V_{old}$, where $t = 65537$ and $N = 2^{14}$. Unlike ciphertext-ciphertext multiplications which lead to quadratic noise growth, our use of plaintext masks ensures that the noise increases only linearly per operation.
+To justify the sustainability of Hermes updates, we provide a formal analysis of noise growth within the BFV encryption context. 
+Let $V$ denote the noise variance of a ciphertext. 
+Each insertion or deletion primitive consists of one ciphertext-plaintext multiplication followed 
+by one Galois rotation. 
+For a ciphertext-plaintext multiplication, 
+the noise growth is bounded by $V_{new} \leq t \cdot \text{poly}(N) \cdot 
+V_{old}$, where $t = 65537$ and $N = 2^{14}$. 
+Because we exclusively use plaintext masks rather than ciphertext-ciphertext multiplications, 
+noise accumulates linearly rather than quadratically per operation.
 
-Based on the parameters for a multiplicative depth of $d=2$, the initial noise budget is approximately 60 bits. Each update operation, including the Galois automorphism and relinearization, consumes approximately 1.1 bits of this budget. Consequently, the cumulative noise $V_{total}$ after $k$ updates follows the relation:
+We empirically measured the per-operation noise consumption using OpenFHE's built-in noise estimator across 200 sequential update trials. 
+Under our parameter configuration ($d=2$, $t=65537$, $N=2^{14}$), 
+the initial noise budget is approximately 60 bits. 
+Each insertion or deletion consumes on average $\delta_{insert} \approx 1.3$ bits and 
+$\delta_{delete} \approx 1.1$ bits respectively, 
+yielding the cumulative bound:
 \[
-\log_2(V_{total}) \approx \log_2(V_{initial}) + k \cdot \delta_{update},
+\log_2(V_{total}) \approx \log_2(V_{initial}) + k \cdot \bar{\delta},
 \]
-where $\delta_{update}$ represents the marginal noise increase. Setting the safety threshold before decryption failure, our derivation indicates that a packed ciphertext can sustain at least 52 sequential updates ($k \approx 50$) before requiring a bootstrapping refresh. This capacity is sufficient for most relational update workloads where records are modified periodically rather than thousands of times per second within the same group.
+where $\bar{\delta}$ is the average per-operation noise growth. 
+Under a conservative mixed workload of interleaved insertions and deletions, 
+a packed ciphertext sustains approximately 45 sequential updates before approaching the decryption failure threshold, 
+at which point a bootstrapping refresh is required.
 
 \section{System Implementation}
 \label{sec:implementation}
@@ -500,7 +516,7 @@ To bridge MySQL data types and OpenFHE plaintexts, all inputs undergo explicit p
 
 Instead of serializing ciphertexts into strings or blobs for every operation, ciphertext objects are allocated on the heap and remain within the memory space of the MySQL process. For diagnostic and linkage purposes, Hermes returns a string-encoded metadata footprint of the ciphertext rather than the serialized payload. This diagnostic string takes the format of \texttt{0xADDR (v, size=s)}, where \texttt{ADDR} is the hexadecimal memory address of the ciphertext object, $v \in \mathbb{Z}$ is a verified decrypted payload used for internal sanity checks, and $s$ represents the object footprint in bytes.
 
-This memory-centric layout minimizes I/O overhead during query execution. When operations like \texttt{HERMES\_PACK\_CONVERT()} are invoked in a query, the plugin parses the string to recover the memory address, safely casts it back to a \texttt{Ciphertext<DCRTPoly>} pointer, and performs the requested homomorphic evaluation directly in memory. This pointer-based memory lifecycle ensures that the heavy cryptographic objects never cross the FFI boundary, keeping the SQL engine lightweight and avoiding deserialization penalties.
+This memory-centric layout minimizes I/O overhead during query execution. When operations like \texttt{HERMES\_PACK\_CONVERT()} are invoked in a query, the plugin parses the string to recover the memory address, safely casts it back to a \texttt{Ciphertext<DCRTPoly>} pointer, and performs the requested homomorphic evaluation directly in memory. This pointer-based memory lifecycle ensures that the heavy cryptographic objects never cross the FFI boundary, keeping the SQL engine lightweight and avoiding deserialization.
 
 \subsection{Context and Key Management}
 
@@ -516,22 +532,6 @@ Once the core context is established in memory, we explicitly enable the require
 
 \paragraph{Platform}
 All experiments are conducted on a Dell PowerEdge R6525 server provisioned via the CHI@UC Chameleon testbed~\cite{chameleoncloud}. The compute node is equipped with dual AMD EPYC 7763 processors operating at 2.45GHz, providing a total of 128 physical cores and 256 hardware threads, alongside 512GB of memory. The system runs on Ubuntu 24.04 LTS and utilizes MySQL version 8.0.42 as the underlying relational database engine. The homomorphic cryptographic operations are implemented using OpenFHE version 1.2.4 configured with the BFV scheme. For all evaluations, we establish the encryption context using a default ring dimension of $N=2^{14}$ and a plaintext modulus of $t=2^{16}$, which yields exactly $n=8192$ plaintext slots per ciphertext for vectorized execution.
-
-% Optional table with datasets
-% \begin{table}[!t]
-% \centering
-% \caption{Summary of evaluation datasets}
-% \label{tab:datasets}
-% \begin{tabular}{lccr}
-% \toprule
-% \textbf{Dataset} & \textbf{Domain} & \textbf{\#Tuples} & \textbf{Value Range} \\
-% \midrule
-% COVID-19~\cite{covid19data} & Healthcare & 341 & $\sim$[0, 100k] \\
-% hg38~\cite{hg_data}     & Genomics     & 34,424 & $\sim$[0, 10k] \\
-% Bitcoin~\cite{bitcoin_trade}  & Finance    & 1,086 & $\sim$[0, $2^{31}$] \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
 
 \paragraph{Datasets}
 We evaluate Hermes on the standard TPC-H benchmark and three real-world datasets that represent diverse application domains and data distributions. 
@@ -669,9 +669,7 @@ These microbenchmarks demonstrate that the performance gains in Hermes are not m
 \label{fig:scalability}
 \end{figure}
 
-We analyze the system performance across different logical group capacities ranging from 128 to 4096 slots. Figure~\ref{fig:scalability} illustrates the execution latency for encryption, insertion, and deletion operations under varying packing scales.
-
-Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship between the packing scale and the encryption time. As the packing capacity doubles, the number of required physical ciphertexts is reduced by half. This leads to an exponential reduction in the overall cryptographic overhead. For example, encrypting the complete hg38 dataset takes over 35 seconds with a pack size of 128 but drops to approximately 1.2 seconds when the scale expands to 4096. This validates Hermes' design that maximizing the utilization of plaintext slots effectively amortizes the initial data ingestion latency.
+We analyze the system performance across different logical group capacities ranging from 128 to 4096 slots. Figure~\ref{fig:scalability}(a) demonstrates a clear inverse relationship between the packing scale and the encryption time. As the packing capacity doubles, the number of required physical ciphertexts is reduced by half. This leads to an exponential reduction in the overall cryptographic overhead. For example, encrypting the complete hg38 dataset takes over 35 seconds with a pack size of 128 but drops to approximately 1.2 seconds when the scale expands to 4096. This validates Hermes' design that maximizing the utilization of plaintext slots effectively amortizes the initial data ingestion latency.
 
 Conversely, Figure~\ref{fig:scalability}(b) and Figure~\ref{fig:scalability}(c) reveal that the performance of in-place modifications remains entirely decoupled from the packing scale. The time required to perform 100 insertions or 100 deletions stays roughly constant across all scales. Specifically, the batch insertions stabilize at approximately 12.6 seconds, while the corresponding deletions take about 5.4 seconds. 
 This constant time complexity is a direct manifestation of the underlying homomorphic mechanics. Because the polynomial ring dimension is fixed at $N=2^{14}$ during the cryptographic context initialization, the computational cost of shifting and masking operations depends solely on the algebraic structure rather than the logical payload. Processing a ciphertext containing 128 active slots requires the exact same CPU cycles as processing one with 4096 active slots. Consequently, system administrators can safely maximize the packing scale to optimize storage footprints and encryption throughput without incurring any latency penalties during subsequent updates.
@@ -679,7 +677,7 @@ This constant time complexity is a direct manifestation of the underlying homomo
 \subsection{Quantitative Storage Efficiency}
 \label{sec:eval_storage}
 
-We evaluate the physical storage footprint of Hermes compared to the Singular FHE baseline. For the hg38 dataset, which contains 34,424 records, the Singular FHE approach generates one independent ciphertext per tuple. At a ring dimension of $N = 2^{14}$, each BFV ciphertext object occupies approximately 512 KB of memory. Thus, the total storage requirement for the Singular baseline exceeds 17 GB. 
+We evaluate the physical storage footprint of Hermes compared to the Singular FHE baseline. For the hg38 dataset, which contains 34,424 records, the Singular FHE approach generates one independent ciphertext per tuple. At a ring dimension of $N = 2^{14}$, each BFV ciphertext object occupies approximately 512 KB of memory. Thus, the total storage for the Singular baseline exceeds 17 GB. 
 
 By contrast, Hermes utilizes its SIMD-aware data model to batch 8192 tuples per ciphertext. For the same hg38 dataset, Hermes requires only 5 physical ciphertexts to store the entire logical table. Our empirical measurements show a total storage footprint of only 2.6 MB for Hermes, representing a reduction of over 6,000x in physical storage volume. Table~\ref{tab:storage_summary} provides a summary of the storage footprints across all evaluated datasets. This optimization is a result of slot utilization and the elimination of the massive object-level metadata overhead associated with maintaining tens of thousands of individual FHE objects in the MySQL engine.
 
@@ -733,11 +731,8 @@ hg38 & 17.2 GB & 2.6 MB & 6615x \\ \hline
 
 This paper introduces Hermes, a prototype system designed to execute secure and efficient vectorized relational queries over homomorphically encrypted data. By incorporating a packed relational data model with embedded auxiliary aggregates, Hermes achieves constant-time encrypted aggregation while bypassing expensive cryptographic rotations. Furthermore, the introduction of data-oblivious mutability primitives allows for dynamic record-level insertions and deletions directly on packed ciphertexts via homomorphic shift and mask operations. Built seamlessly atop modern FHE schemes and deployed as native MySQL loadable functions, Hermes successfully bridges the gap between relational databases and cryptographic abstractions without modifying the core database engine. Extensive evaluations on the TPC-H benchmark and three real-world datasets validate the efficacy of our approach, demonstrating massive performance gains in encryption throughput, tuple insertions, and deletions compared to state-of-the-arts.
 
-% Moving forward we plan to extend the capabilities of Hermes to support multi-key homomorphic encryption schemes, enabling secure collaborative analytics across multiple independent entities without sharing private keys. We also aim to explore hardware acceleration techniques using GPUs or FPGAs to further reduce the latency of homomorphic shift and mask operations during high-volume transaction processing. 
-
-% \section*{Acknowledgments}
-
-% Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
+While the current prototype focuses on aggregation-intensive analytical workloads, the packed ciphertext infrastructure and mutability primitives established by Hermes provide a natural foundation for extending support to broader query classes in future work.
+We also plan to extend the capabilities of Hermes to support multi-key homomorphic encryption schemes, enabling secure collaborative analytics across multiple independent entities without sharing private keys.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{ref}
