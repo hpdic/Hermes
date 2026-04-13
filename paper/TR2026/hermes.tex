@@ -3,7 +3,7 @@
 
 
 % Title portion
-\title{Hermes: Efficient Homomorphic Aggregation over Mutable Packed Ciphertexts in Outsourced Databases}
+\title{Hermes: Towards Efficient Homomorphic Aggregation over Mutable Packed Ciphertexts in Outsourced Databases}
 
 \author{Dongfang Zhao}
 \affiliation{
@@ -553,7 +553,7 @@ We structure experiments around four research questions (RQs):
 
 While several homomorphic prototypes such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384} exist, we exclude them from empirical comparison for two reasons. First, these works function as client-side standalone scripts rather than being integrated into the execution pipeline of a production-grade DBMS. Second, Hermes prioritizes strict IND-CPA security without access pattern leakage, whereas those alternatives rely on interactive protocols or property-preserving encryption that inherently weaken the threat model. Thus, we benchmark against Intel IPCL~\cite{ipcl_github} and OpenFHE~\cite{openfhe} to establish a baseline using identical cryptographic security levels.
 
-An example list of Hermes APIs is provided in Appendix~\ref{appendix:api}, such as SELECT SUM() and GROUP BY. 
+An example list of Hermes APIs is provided in Appendix~\ref{appendix:api}. 
 
 \subsection{TPC-H Benchmark}
 \label{sec:eval_tpch}
