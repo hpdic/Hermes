@@ -230,40 +230,67 @@ We summarize key terms and notation used throughout this paper. Let $n$ denote t
 
   % \item \textbf{Ciphertext:} A ciphertext $c \in \mathcal{C}$ is a BFV-encoded object that homomorphically encrypts $[m_0, \dots, m_{n-1}]$ for some plaintext values $m_i \in \mathbb{Z}_t$. Ciphertexts may undergo operations such as addition, multiplication, and automorphic permutation.
 
-\paragraph{Group ID} In Hermes, input tuples are partitioned by a logical \emph{group ID}, which assigns each record to a packed vector instance. All records within the same group are encoded into the same ciphertext. The mapping from record to group is deterministic and index-driven.
+\paragraph{Group ID} Input tuples are partitioned by a logical \emph{group ID}, which assigns each record to a packed vector instance. All records within the same group are encoded into the same ciphertext. The mapping from record to group is deterministic and index-driven.
 
-\paragraph{Auxiliary Sum Slot} Hermes reserves the final slot (slot $n{-}1$) in each ciphertext to store the \emph{local sum}, i.e., the plaintext sum $\sum_{j=0}^{n-2} m_j$ of all payload slots. This value is computed at packing time and used to accelerate encrypted aggregation without Galois rotation.
+\paragraph{Auxiliary Sum Slot} Hermes reserves the final slot (slot $n{-}1$) in each ciphertext to store the \emph{local sum}, i.e., the plaintext sum $\sum_{j=0}^{n-2} m_j$ of all slots. This value is computed at packing time and used to accelerate encrypted aggregation without Galois rotation.
 
-\paragraph{Packed Representation} A ciphertext that stores $n{-}1$ application values and one auxiliary statistic is referred to as a \emph{packed representation}. This format enables efficient updates and aggregation via SIMD-aware primitives.
+\paragraph{Packed Representation} A ciphertext that stores $n{-}1$ application values and one auxiliary statistic is referred to as a \emph{packed representation}. This format enables efficient aggregation via SIMD-aware primitives.
 
-\paragraph{Logical Length} Some plaintext vectors do not occupy all $n$ slots. The number of meaningful entries is called the \emph{logical length}, and is used to control serialization, summation, and slot masking operations.
+\paragraph{Logical Length} Some plaintext vectors do not occupy all $n$ slots. The number of meaningful entries is called the \emph{logical length}, and is used to control serialization, summation, and slot masking.
 
 \section{Hermes: Native FHE for Relational Databases}
+
+To provide a comprehensive roadmap of the Hermes architecture, We begin by defining the SIMD-aware packed data model in Section~\ref{sec:datamodel}, which establishes the physical foundation for vectorized storage and slot alignment. Following this, Section~\ref{sec:primitives} describes the suite of data-oblivious primitives that enable in-place mutability through homomorphic masking and shifting. Section~\ref{sec:aggregation} then introduces the accelerated aggregation pipeline and its associated maintenance logic, leveraging reserved auxiliary slots to bypass traditional rotation bottlenecks. Finally, Section~\ref{sec:analysis} provides a theoretical treatment of system security and performance analysis.
 
 \subsection{The Hermes Packed Data Model}
 \label{sec:datamodel}
 
-To bridge the structural gap between relational database tables and cryptographic objects, we propose a slot-aware packing layout. In this model, each ciphertext acts as a secure container holding a fixed-size group of database records. This architecture amortizes the encryption cost and establishes the foundation for efficient SIMD-style query processing over the encrypted domain.
+To bridge the structural mismatch between relational database tables and lattice-based cryptographic objects, we propose a slot-aware packing layout. Relational engines traditionally operate on a row-by-row basis, whereas modern homomorphic encryption achieves acceptable throughput exclusively via vectorized polynomial operations. In our model, each ciphertext acts as a secure, fixed-size container holding a strictly aligned group of database records. This architecture amortizes the heavy encryption cost across thousands of tuples and establishes the foundational algebraic structure required for efficient SIMD-style query processing over the encrypted domain.
 
 \subsubsection{Slot-Aware Packing Strategy}
 
-In Hermes, we introduce a structured packing layout that leverages the SIMD-style slot architecture of the BFV homomorphic encryption scheme. Rather than encrypting each tuple into an isolated ciphertext, which incurs prohibitive memory and performance overhead, we adopt a batched layout where each ciphertext encodes a vector of plaintext values, referred to as slots.
+Building upon the standard BFV SIMD encoding where the Chinese Remainder Theorem establishes an isomorphism $R_t \cong \mathbb{Z}_t^n$ to provide $n = N/2$ independent scalar slots, Hermes introduces a specialized slot allocation strategy. Rather than utilizing all $n$ slots for raw database payloads to maximize naive storage, we strictly reserve the final slot to store an auxiliary value such as the precomputed local sum. For instance, given a ring dimension of $N=8192$ resulting in $n=4096$ available slots, this strategic reservation yields an effective payload capacity of $n-1$ logical records per ciphertext. This batched layout not only prevents the extreme memory inflation associated with isolated tuple encryption but also establishes the foundational algebraic structure required for efficient aggregation primitives.
 
-Let $N$ denote the ring dimension of the BFV scheme. When batching is enabled via the Chinese Remainder Theorem on cyclotomic rings, the scheme yields $n = N/2$ usable slots. For example, with $N=8192$, Hermes can store $n = 4096$ individual scalar values per ciphertext. However, instead of utilizing all $n$ slots for raw data, we strictly reserve the final slot to store an auxiliary value, such as the local sum of the vector entries. This yields an effective capacity of $n-1$ logical records per ciphertext.
+Each slot within a packed ciphertext carries a fixed positional semantic: slot $i$ corresponds directly to the $i$-th logical record in the assigned database group. This deterministic alignment enables precise slot-wise algebraic reasoning. If a database group contains fewer than $n-1$ active records, Hermes automatically pads the remaining available slots with zeros, ensuring uniform ciphertext dimensions without altering the numerical semantics of aggregate queries. When a ciphertext is decrypted, the unpacked vector reveals values at well-defined offsets, allowing the database client to reconstruct the plaintext table fragment without requiring external mapping tables, which is essential for supporting secure in-place modifications without leaking tuple identity.
 
-Each slot in a packed ciphertext has a fixed positional meaning: slot $i$ corresponds to the $i$-th logical record in the group. This deterministic alignment enables precise slot-wise reasoning. When a ciphertext is decrypted, the unpacked vector reveals values at well-defined offsets, allowing the database client to reconstruct the plaintext table fragment without additional metadata. This position-indexed design is essential for supporting secure in-place modifications without leaking tuple identity or requiring explicit key-column mapping.
+\subsubsection{Auxiliary Slot Embedding and Capacity Planning}
 
-\subsubsection{Auxiliary Slot Embedding at Packing Time}
+Hermes adopts a hybrid encoding strategy in which each packed ciphertext stores not only the array of plaintext relational values but also a precomputed auxiliary statistic. This local sum is explicitly embedded into the last slot of the ciphertext at the exact time of initial data ingestion and packing.
 
-Hermes adopts a hybrid encoding strategy in which each packed ciphertext stores not only the array of plaintext relational values but also a precomputed auxiliary statistic. This local sum is embedded into the last slot of the ciphertext at the exact time of ingestion and packing.
-
-Given a batch of $n-1$ plaintext values $(v_0, v_1, \dots, v_{n-2})$ to be packed into a ciphertext, the system computes their sum $s = \sum_{i=0}^{n-2} v_i$ in plaintext and constructs an extended vector of the form:
+Given a batch of $n-1$ plaintext values $(v_0, v_1, \dots, v_{n-2})$ to be packed into a new ciphertext, the system computes their exact sum $s = \sum_{i=0}^{n-2} v_i$ in the cleartext domain and constructs an extended vector of the form:
 \[
-m = (v_0, v_1, \dots, v_{n-2}, s) \in \mathbb{Z}_t^n,
+m = (v_0, v_1, \dots, v_{n-2}, s) \in \mathbb{Z}_t^n
 \]
-where $t$ is the plaintext modulus. The extended vector $m$ is then passed to the cryptographic API to generate a packed plaintext object, which is subsequently encrypted into a ciphertext.
+where $t$ remains the plaintext modulus. The extended vector $m$ is then passed to the BFV encoding API to generate a packed polynomial plaintext object, which is subsequently encrypted into a randomized ciphertext. 
 
-This layout effectively reserves the final slot at index $n-1$ as a local accumulator. Because BFV ciphertexts support SIMD-style evaluations, all data and the auxiliary sum coexist securely within a single ciphertext boundary. Since the sum is computed in the clear before encryption, this initial embedding incurs no homomorphic overhead. By formalizing this static data model, Hermes transforms complex multi-tuple structures into manageable relational vectors, setting the stage for the dynamic mutability primitives discussed in the next section.
+This physical layout effectively repurposes the final slot at index $n-1$ as an isolated local accumulator. Because BFV ciphertexts naturally support SIMD-style circuit evaluations, all raw data and the auxiliary sum coexist securely within a single ciphertext boundary. Since the accumulator is computed before the application of encryption noise, this initial embedding operation incurs zero homomorphic overhead. 
+
+In the Hermes model, mapping relational integers into the finite field $\mathbb{Z}_t$ introduces strict boundary constraints. The database engine must ensure that the accumulated sum $s$ does not exceed the plaintext modulus $t$ to prevent silent mathematical overflows during runtime. By formalizing this static data model and enforcing these modulus boundaries, Hermes transforms complex multi-tuple structures into manageable, hardware-friendly relational vectors, setting the precise stage for the dynamic mutability primitives discussed in the remainder of this paper.
+
+% \subsection{The Hermes Packed Data Model}
+% \label{sec:datamodel}
+
+% To bridge the structural gap between relational database tables and cryptographic objects, we propose a slot-aware packing layout. In this model, each ciphertext acts as a secure container holding a fixed-size group of database records. This architecture amortizes the encryption cost and establishes the foundation for efficient SIMD-style query processing over the encrypted domain.
+
+% \subsubsection{Slot-Aware Packing Strategy}
+
+% In Hermes, we introduce a structured packing layout that leverages the SIMD-style slot architecture of the BFV homomorphic encryption scheme. Rather than encrypting each tuple into an isolated ciphertext, which incurs prohibitive memory and performance overhead, we adopt a batched layout where each ciphertext encodes a vector of plaintext values, referred to as slots.
+
+% Let $N$ denote the ring dimension of the BFV scheme. When batching is enabled via the Chinese Remainder Theorem on cyclotomic rings, the scheme yields $n = N/2$ usable slots. For example, with $N=8192$, Hermes can store $n = 4096$ individual scalar values per ciphertext. However, instead of utilizing all $n$ slots for raw data, we strictly reserve the final slot to store an auxiliary value, such as the local sum of the vector entries. This yields an effective capacity of $n-1$ logical records per ciphertext.
+
+% Each slot in a packed ciphertext has a fixed positional meaning: slot $i$ corresponds to the $i$-th logical record in the group. This deterministic alignment enables precise slot-wise reasoning. When a ciphertext is decrypted, the unpacked vector reveals values at well-defined offsets, allowing the database client to reconstruct the plaintext table fragment without additional metadata. This position-indexed design is essential for supporting secure in-place modifications without leaking tuple identity or requiring explicit key-column mapping.
+
+% \subsubsection{Auxiliary Slot Embedding at Packing Time}
+
+% Hermes adopts a hybrid encoding strategy in which each packed ciphertext stores not only the array of plaintext relational values but also a precomputed auxiliary statistic. This local sum is embedded into the last slot of the ciphertext at the exact time of ingestion and packing.
+
+% Given a batch of $n-1$ plaintext values $(v_0, v_1, \dots, v_{n-2})$ to be packed into a ciphertext, the system computes their sum $s = \sum_{i=0}^{n-2} v_i$ in plaintext and constructs an extended vector of the form:
+% \[
+% m = (v_0, v_1, \dots, v_{n-2}, s) \in \mathbb{Z}_t^n,
+% \]
+% where $t$ is the plaintext modulus. The extended vector $m$ is then passed to the cryptographic API to generate a packed plaintext object, which is subsequently encrypted into a ciphertext.
+
+% This layout effectively reserves the final slot at index $n-1$ as a local accumulator. Because BFV ciphertexts support SIMD-style evaluations, all data and the auxiliary sum coexist securely within a single ciphertext boundary. Since the sum is computed in the clear before encryption, this initial embedding incurs no homomorphic overhead. By formalizing this static data model, Hermes transforms complex multi-tuple structures into manageable relational vectors, setting the stage for the dynamic mutability primitives discussed in the next section.
 
 \subsection{Data-Oblivious Mutability Primitives}
 \label{sec:primitives}
@@ -275,8 +302,6 @@ To allow a single packed ciphertext to dynamically reflect the updates of mutabl
 Hermes supports the in-place insertion of plaintext values into packed ciphertexts. The objective is to insert a new value $v$ into logical slot $i$ of an existing ciphertext $c$, where slots $i$ through $n-2$ may already contain payload data. Since ciphertexts are encoded as fixed-size relational vectors, this operation requires shifting all subsequent entries rightward by one position. This is analogous to an array insertion, yet it is performed entirely under encryption.
 
 The procedure utilizes homomorphic Galois rotations and plaintext masks. We first isolate the tail of the vector using a preservation mask and shift it rightward. Concurrently, we isolate the head of the vector to keep the preceding records intact. The new value is then encrypted and injected into the target slot. Finally, the auxiliary local sum at the end of the ciphertext is synchronously updated via a scalar plaintext addition.
-
-We formalize this procedure in Algorithm~\ref{alg:insertion}.
 
 \begin{algorithm}[ht]
 \caption{Data-Oblivious Homomorphic Insertion}
@@ -298,7 +323,7 @@ We formalize this procedure in Algorithm~\ref{alg:insertion}.
 \end{algorithmic}
 \end{algorithm}
 
-This operation is executed entirely within the database server process using the OpenFHE API. It leaks no information regarding which slot was modified or what value was inserted, maintaining a completely data-oblivious execution profile. When a ciphertext reaches its maximum slot capacity, Hermes rejects further insertions, maintaining a strict one-to-one mapping between the database group and the ciphertext.
+Algorithm~\ref{alg:insertion} formalizes the homomorphic insertion procedure, which transforms a static ciphertext into a mutable relational container through a precise sequence of slot level manipulations. The process begins by partitioning the existing payload into two disjoint segments using predefined plaintext masks. Specifically, the system constructs $m_{head}$ to isolate records preceding the target index $i$ and $m_{tail}$ to capture all subsequent records within the current group. These segments are extracted into $c_{head}$ and $c_{tail}$ through homomorphic multiplications, ensuring that only the relevant slots remain active in each temporary ciphertext. To create a vacancy for the newly ingested entry, the system applies a Galois automorphism to $c_{tail}$, shifting the entire tail segment rightward by exactly one slot. The new plaintext value $v$ is then encoded into a sparse vector, encrypted into $c_v$, and merged with the isolated segments using homomorphic additions. Finally, to guarantee the correctness of subsequent analytical queries, Hermes updates the auxiliary local sum at index $n-1$ by adding the value $v$ via a lightweight scalar addition. This approach ensures that the updated ciphertext $c_{new}$ remains synchronized with the underlying relational state while leaking no information regarding the exact insertion position.
 
 \subsubsection{Homomorphic Deletion}
 
@@ -306,7 +331,7 @@ Hermes enables encrypted deletion by simulating a logical left-shift over the un
 
 The deletion procedure follows a symmetric logic to insertion. Hermes isolates the subvector corresponding to slots $i+1$ through $n-2$ and rotates it leftward by one position. A zeroing mask is subsequently applied to clear the final payload slot, which would otherwise contain a stale duplicate value due to the shift. The original head of the vector is preserved and merged with the shifted tail. The local sum is then decremented by the deleted value via plaintext subtraction.
 
-Algorithm~\ref{alg:deletion} details the formal steps for this operation.
+Algorithm~\ref{alg:deletion} details the formal steps for the homomorphic deletion procedure, which mirrors the insertion logic to securely remove a record while maintaining the compacted structure of the packed ciphertext. The operation starts by isolating the segments of the payload that will remain in the database. Using homomorphic multiplications, the system applies the mask $m_{head}$ to retain the records before the target index $i$, and the mask $m_{tail}$ to capture the records after index $i$, effectively dropping the deleted value from the active state. To fill the structural void left by the deletion, the system applies a Galois automorphism to $c_{tail}$, executing a leftward shift of exactly one position. Because this rotation can introduce stale values at the boundary of the payload, a zeroing mask $z$ is applied to clear the final data slot, producing a sanitized tail segment $c_{clean}$. The preserved head and the shifted tail are then combined via homomorphic addition. Finally, to keep the encrypted aggregate consistent, Hermes constructs a sparse vector containing the negated value $-v$ at the auxiliary index $n-1$ and performs a scalar addition. This guarantees that the global sum accurately reflects the deletion without requiring any decryption or revealing the removed slot position.
 
 \begin{algorithm}[ht]
 \caption{Data-Oblivious Homomorphic Deletion}
@@ -328,7 +353,7 @@ Algorithm~\ref{alg:deletion} details the formal steps for this operation.
 \end{algorithmic}
 \end{algorithm}
 
-All steps are performed homomorphically, ensuring slot occupancy consistency and maintaining statistical privacy. If all payload slots are deleted, the ciphertext is treated as semantically inert. It contributes nothing to aggregate queries, and the auxiliary sum naturally evaluates to zero, guaranteeing that global aggregation remains perfectly accurate even in the presence of entirely empty groups.
+All steps are performed homomorphically, ensuring slot occupancy consistency and maintaining statistical privacy. If all payload slots are deleted, the ciphertext is treated as semantically inert. It contributes nothing to aggregate queries, and the auxiliary sum naturally evaluates to zero, guaranteeing that global aggregation remains accurate even in the presence of entirely empty groups.
 
 \subsection{Homomorphic Aggregate and Maintenance}
 \label{sec:aggregation}
@@ -345,23 +370,9 @@ For global analytical queries such as \texttt{SELECT SUM(attr)}, the database en
 
 To ensure the correctness of aggregation queries over mutable data, the embedded local sum must remain perfectly synchronized with the active payload slots. Whenever an insertion or deletion occurs, Hermes performs a lightweight incremental update on the auxiliary slot rather than recomputing the sum from scratch.
 
-As demonstrated in the mutability primitives, when a new plaintext value $v$ is inserted into a packed ciphertext, Hermes isolates the update to the auxiliary slot by constructing a sparse plaintext vector. This vector contains the value $v$ exactly at index $n-1$ and zeros elsewhere. The system then performs a homomorphic scalar addition to increase the local sum to reflect the newly ingested record. Conversely, when a record is deleted, Hermes constructs a similar sparse vector containing the negated value $-v$ at the final slot to decrement the local sum. Because the inserted or deleted values are supplied in cleartext as part of the SQL update expression, these incremental adjustments require no re-encryption or multi level circuit evaluations. We formalize both the global aggregation procedure and the incremental maintenance logic in Algorithm~\ref{alg:aggregation}.
+As demonstrated in the mutability primitives, when a new plaintext value $v$ is inserted into a packed ciphertext, Hermes isolates the update to the auxiliary slot by constructing a sparse plaintext vector. This vector contains the value $v$ exactly at index $n-1$ and zeros elsewhere. The system then performs a homomorphic scalar addition to increase the local sum to reflect the newly ingested record. Conversely, when a record is deleted, Hermes constructs a similar sparse vector containing the negated value $-v$ at the final slot to decrement the local sum. Because the inserted or deleted values are supplied in cleartext as part of the SQL update expression, these incremental adjustments require no re-encryption or multi level circuit evaluations. 
 
-% \begin{algorithm}[ht]
-% \caption{Homomorphic Aggregate and Maintenance}
-% \label{alg:aggregation}
-% \begin{algorithmic}[1]
-% \Require Ciphertexts $c_1, \dots, c_k$, Target $c$, Update $\Delta v$, Capacity $n$
-% \Ensure Aggregated result $c_{agg}$, Maintained ciphertext $c_{updated}$
-% \State \text{Step 1: Encrypted Global Aggregation}
-% \State $c_{agg} \gets c_1$
-% \State Accumulate from $j=2$ to $k$: $c_{agg} \gets \mathsf{EvalAdd}(c_{agg}, c_j)$
-% \State \text{Step 2: Incremental Local Sum Maintenance}
-% \State $m_{sum} \gets \text{vector with } \Delta v \text{ at index } n-1 \text{ and 0s elsewhere}$
-% \State $c_{updated} \gets \mathsf{EvalAdd}(c, m_{sum})$
-% \State \Return $c_{agg}, c_{updated}$
-% \end{algorithmic}
-% \end{algorithm}
+Algorithm~\ref{alg:aggregation} formalizes the dual mechanism of global aggregation and incremental maintenance, illustrating how Hermes bypasses traditional computational bottlenecks. The procedure is divided into two distinct operational phases. In the first phase, the system evaluates global analytical queries by accumulating a collection of ciphertexts $c_1$ through $c_k$. Instead of unpacking and rotating individual data slots, Hermes iteratively applies homomorphic addition across the entire ciphertext collection. Because the precomputed local sums are deterministically aligned at the final auxiliary slot of each ciphertext, this SIMD operation natively computes the global aggregate using a single arithmetic evaluation per ciphertext. The second phase details the lightweight maintenance logic required when the underlying relational data mutates. To keep the auxiliary statistic synchronized with the active payload, the system constructs a sparse plaintext vector $m_{sum}$ over the domain $\mathbb{Z}_t^n$. The update value $v$ is isolated at the final index $n-1$, leaving all other slots as zero. A scalar homomorphic addition then merges this sparse vector with the target ciphertext $c$, instantly updating the local accumulator. 
 
 \begin{algorithm}[ht]
 \caption{Homomorphic Aggregate and Maintenance}
@@ -385,7 +396,7 @@ As demonstrated in the mutability primitives, when a new plaintext value $v$ is 
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Security and Complexity Analysis}
+\subsection{Security and Performance Analysis}
 \label{sec:analysis}
 
 \subsubsection{Security Model and Assumptions}
@@ -729,44 +740,44 @@ hg38 & 17.2 GB & 2.6 MB & 6615x \\ \hline
 \end{tabular}
 \end{table}
 
-\section{Discussion and Limitations}
-\label{sec:discussion}
+% \section{Discussion and Limitations}
+% \label{sec:discussion}
 
 % While Hermes demonstrates significant performance improvements for encrypted query processing, integrating fully homomorphic encryption into a relational database engine introduces several architectural trade offs. This section discusses the current limitations of Hermes and outline potential avenues for future research.
 
-\subsection{Multi-Attribute Operations and Table Joins}
+% \subsection{Multi-Attribute Operations and Table Joins}
 
-Hermes is currently implemented and fully evaluated on single-attribute analytical workloads, which represent the primary performance bottleneck in homomorphically encrypted databases. Extending the system to multi-attribute tables is straightforward and requires no modifications to the core packing layout, mutability primitives, or aggregation mechanism. For instance, we could simply adopt a columnar packing strategy: each attribute is independently packed into its own ciphertext while sharing the same group ID across columns. This design fully reuses the existing SIMD-aware layout and auxiliary-sum slot, incurring no additional cryptographic overhead for updates or single-table aggregations. The only change is in the query execution layer, which coordinates the corresponding per-attribute ciphertexts. 
+% Hermes is currently implemented and fully evaluated on single-attribute analytical workloads, which represent the primary performance bottleneck in homomorphically encrypted databases. Extending the system to multi-attribute tables is straightforward and requires no modifications to the core packing layout, mutability primitives, or aggregation mechanism. For instance, we could simply adopt a columnar packing strategy: each attribute is independently packed into its own ciphertext while sharing the same group ID across columns. This design fully reuses the existing SIMD-aware layout and auxiliary-sum slot, incurring no additional cryptographic overhead for updates or single-table aggregations. The only change is in the query execution layer, which coordinates the corresponding per-attribute ciphertexts. 
 
-Table joins are intentionally kept outside the current scope of Hermes. 
-For example, while equi-joins are a fundamental relational operation, they require cross-ciphertext multiplications to test equality under encryption, which significantly increases multiplicative depth and noise growth in pure BFV. 
-Supporting full relational joins remains an important direction for future work.
+% Table joins are intentionally kept outside the current scope of Hermes. 
+% For example, while equi-joins are a fundamental relational operation, they require cross-ciphertext multiplications to test equality under encryption, which significantly increases multiplicative depth and noise growth in pure BFV. 
+% Supporting full relational joins remains an important direction for future work.
 
-\subsection{Concurrency Control and Ciphertext Locks}
+% \subsection{Concurrency Control and Ciphertext Locks}
 
-A fundamental consequence of the SIMD-packed data model is that multiple relational tuples are physically collocated within a single ciphertext object. While this structure exponentially increases encryption throughput and amortizes aggregation costs, it introduces challenges for database concurrency control.
+% A fundamental consequence of the SIMD-packed data model is that multiple relational tuples are physically collocated within a single ciphertext object. While this structure exponentially increases encryption throughput and amortizes aggregation costs, it introduces challenges for database concurrency control.
 
-When two concurrent transactions attempt to insert or delete different tuples belonging to the same logical group, they must modify the identical underlying ciphertext. In the current Hermes prototype, we rely on the native locking protocols of the MySQL engine, which essentially escalates row-level modifications into group-level ciphertext locks to prevent race conditions. Under highly concurrent write workloads, this can lead to write amplification and lock contention. To mitigate this, future iterations of the system could implement an optimistic concurrency control (OCC) mechanism tailored for homomorphic operations, allowing non-conflicting slot updates to be temporarily buffered and merged homomorphically before a final commit.
+% When two concurrent transactions attempt to insert or delete different tuples belonging to the same logical group, they must modify the identical underlying ciphertext. In the current Hermes prototype, we rely on the native locking protocols of the MySQL engine, which essentially escalates row-level modifications into group-level ciphertext locks to prevent race conditions. Under highly concurrent write workloads, this can lead to write amplification and lock contention. To mitigate this, future iterations of the system could implement an optimistic concurrency control (OCC) mechanism tailored for homomorphic operations, allowing non-conflicting slot updates to be temporarily buffered and merged homomorphically before a final commit.
 
-\subsection{Fragmentation and Garbage Collection}
+% \subsection{Fragmentation and Garbage Collection}
 
-Hermes performs data-oblivious deletions by homomorphically zeroing out the targeted slots and shifting the remaining payload. As records are continuously deleted, a packed ciphertext may accumulate a significant number of stale, empty slots, leading to internal fragmentation. Although these empty slots do not affect the correctness of global aggregate queries (since their values are logically zero), they decrease the overall storage efficiency of the database.
+% Hermes performs data-oblivious deletions by homomorphically zeroing out the targeted slots and shifting the remaining payload. As records are continuously deleted, a packed ciphertext may accumulate a significant number of stale, empty slots, leading to internal fragmentation. Although these empty slots do not affect the correctness of global aggregate queries (since their values are logically zero), they decrease the overall storage efficiency of the database.
 
-Currently, Hermes treats these heavily deleted ciphertexts as semantically inert but retains them in storage to preserve structural consistency. To address this limitation in production environments, a background garbage collection mechanism, conceptually similar to the \emph{autovacuum daemon} in PostgreSQL, is desired. During periods of low system load, this daemon could identify sparse ciphertexts, homomorphically compact the remaining active slots, and merge multiple underutilized groups into a single densely packed ciphertext, thereby reclaiming storage space and maintaining optimal query throughput.
+% Currently, Hermes treats these heavily deleted ciphertexts as semantically inert but retains them in storage to preserve structural consistency. To address this limitation in production environments, a background garbage collection mechanism, conceptually similar to the \emph{autovacuum daemon} in PostgreSQL, is desired. During periods of low system load, this daemon could identify sparse ciphertexts, homomorphically compact the remaining active slots, and merge multiple underutilized groups into a single densely packed ciphertext, thereby reclaiming storage space and maintaining optimal query throughput.
 
-\subsection{Schema Evolution and Grouping Flexibility}
-\label{sec:flexibility}
+% \subsection{Schema Evolution and Grouping Flexibility}
+% \label{sec:flexibility}
 
-Relational databases in production environments frequently undergo schema evolution and re-partitioning. A potential limitation of the Hermes packed model is the static nature of the grouping capacity $n$, which is determined by the ring dimension $N$ at the time of cryptographic context initialization. 
+% Relational databases in production environments frequently undergo schema evolution and re-partitioning. A potential limitation of the Hermes packed model is the static nature of the grouping capacity $n$, which is determined by the ring dimension $N$ at the time of cryptographic context initialization. 
 
-If the database administrator decides to increase the group capacity to further amortize costs, existing ciphertexts must be re-packed. This transition can be handled through two different strategies. The first is a client-side re-encryption approach, which is efficient but requires data movement. The second is a homomorphic expansion circuit that merges multiple sparse ciphertexts into a single dense ciphertext. While the homomorphic approach preserves end-to-end privacy, it incurs significant computational overhead due to the required rotations. Furthermore, the choice of the group ID also influences the sparsity of the packed ciphertexts. Future research will focus on developing dynamic packing algorithms that can adapt the slot utilization based on real-time query patterns and storage constraints, allowing for a more flexible mapping between logical tables and cryptographic vectors.
+% If the database administrator decides to increase the group capacity to further amortize costs, existing ciphertexts must be re-packed. This transition can be handled through two different strategies. The first is a client-side re-encryption approach, which is efficient but requires data movement. The second is a homomorphic expansion circuit that merges multiple sparse ciphertexts into a single dense ciphertext. While the homomorphic approach preserves end-to-end privacy, it incurs significant computational overhead due to the required rotations. Furthermore, the choice of the group ID also influences the sparsity of the packed ciphertexts. Future research will focus on developing dynamic packing algorithms that can adapt the slot utilization based on real-time query patterns and storage constraints, allowing for a more flexible mapping between logical tables and cryptographic vectors.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
 This paper introduces Hermes, a prototype system designed to execute secure and efficient vectorized relational queries over homomorphically encrypted data. By incorporating a packed relational data model with embedded auxiliary aggregates, Hermes achieves constant-time encrypted aggregation while bypassing expensive cryptographic rotations. Furthermore, the introduction of data-oblivious mutability primitives allows for dynamic record-level insertions and deletions directly on packed ciphertexts via homomorphic shift and mask operations. Built seamlessly atop modern FHE schemes and deployed as native MySQL loadable functions, Hermes successfully bridges the gap between relational databases and cryptographic abstractions without modifying the core database engine. Extensive evaluations across diverse real-world datasets validate the efficacy of our approach, demonstrating massive performance gains in encryption throughput, tuple insertions, and deletions compared to state-of-the-art baselines.
 
-% Moving forward, we plan to extend the capabilities of Hermes to support more complex relational algebraic operations, such as secure table joins and nested subqueries, which remain challenging in the fully homomorphic domain. We also aim to explore hardware acceleration techniques using GPUs or FPGAs to further reduce the latency of homomorphic shift and mask operations during high-volume transaction processing. Additionally, while the current integration is optimized for MySQL, adapting the Hermes architecture to other major database management systems could broaden its applicability across different enterprise environments. Finally, investigating multi-key homomorphic encryption schemes would allow Hermes to support collaborative data analytics scenarios where multiple independent entities can securely query combined encrypted datasets without sharing their private keys.
+Moving forward, we plan to extend the capabilities of Hermes to support more complex relational algebraic operations, such as secure table joins and nested subqueries, which remain challenging in the fully homomorphic domain. We also aim to explore hardware acceleration techniques using GPUs or FPGAs to further reduce the latency of homomorphic shift and mask operations during high-volume transaction processing. Additionally, while the current integration is optimized for MySQL, adapting the Hermes architecture to other major database management systems could broaden its applicability across different enterprise environments. Finally, investigating multi-key homomorphic encryption schemes would allow Hermes to support collaborative data analytics scenarios where multiple independent entities can securely query combined encrypted datasets without sharing their private keys.
 
 \section*{Acknowledgments}
 
