@@ -1,6 +1,13 @@
 # Update on Apr 12, 2026: Added TPC-H benchmark results
+After running the commands on Mar 13, 2026, you can also run the TPC-H benchmark using the following command:
 ```bash
 ~/hpdic/Hermes/experiments/script/load_tpch.sh
+# To run all TPC-H workload queries:
+~/hpdic/Hermes/experiments/script/eval_tpch_scale_all.sh
+# Or, if you want to run individual queries:
+~/hpdic/Hermes/experiments/script/eval_tpch_scale_q1.sh
+~/hpdic/Hermes/experiments/script/eval_tpch_scale_insert.sh
+~/hpdic/Hermes/experiments/script/eval_tpch_scale_remove.sh
 ```
 
 # Update on Mar 13, 2026 (on Chameleon Cloud)

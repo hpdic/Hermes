@@ -1,0 +1,55 @@
+[*] Starting comprehensive scalability evaluation...
+
+[*] =========================================
+[*] EVALUATING TUPLE COUNT: 1000
+[*] =========================================
+[*] --- Workload 1: Q1 Aggregation ---
+Q1 Plaintext aggregation latency: 21 ms
+Q1 Hermes aggregation latency: 41 ms
+[*] --- Workload 2: Insertion ---
+Insert Baseline Scalar FHE (simulated 100 ops) latency: 12577 ms
+Insert Hermes packed (5 ops) latency: 697 ms
+[*] --- Workload 3: Deletion ---
+Delete Baseline Scalar FHE (simulated 100 ops) latency: 12645 ms
+Delete Hermes packed (5 ops) latency: 314 ms
+
+[*] =========================================
+[*] EVALUATING TUPLE COUNT: 5000
+[*] =========================================
+[*] --- Workload 1: Q1 Aggregation ---
+Q1 Plaintext aggregation latency: 33 ms
+Q1 Hermes aggregation latency: 41 ms
+[*] --- Workload 2: Insertion ---
+Insert Baseline Scalar FHE (simulated 100 ops) latency: 12792 ms
+Insert Hermes packed (5 ops) latency: 686 ms
+[*] --- Workload 3: Deletion ---
+Delete Baseline Scalar FHE (simulated 100 ops) latency: 12735 ms
+Delete Hermes packed (5 ops) latency: 364 ms
+
+[*] =========================================
+[*] EVALUATING TUPLE COUNT: 10000
+[*] =========================================
+[*] --- Workload 1: Q1 Aggregation ---
+Q1 Plaintext aggregation latency: 49 ms
+Q1 Hermes aggregation latency: 39 ms
+[*] --- Workload 2: Insertion ---
+Insert Baseline Scalar FHE (simulated 100 ops) latency: 12638 ms
+Insert Hermes packed (5 ops) latency: 666 ms
+[*] --- Workload 3: Deletion ---
+Delete Baseline Scalar FHE (simulated 100 ops) latency: 12621 ms
+Delete Hermes packed (5 ops) latency: 87 ms
+
+[*] =========================================
+[*] EVALUATING TUPLE COUNT: 15000
+[*] =========================================
+[*] --- Workload 1: Q1 Aggregation ---
+Q1 Plaintext aggregation latency: 82 ms
+Q1 Hermes aggregation latency: 43 ms
+[*] --- Workload 2: Insertion ---
+Insert Baseline Scalar FHE (simulated 100 ops) latency: 12815 ms
+Insert Hermes packed (5 ops) latency: 693 ms
+[*] --- Workload 3: Deletion ---
+Delete Baseline Scalar FHE (simulated 100 ops) latency: 12793 ms
+Delete Hermes packed (5 ops) latency: 79 ms
+
+[*] All scalability evaluations complete.
