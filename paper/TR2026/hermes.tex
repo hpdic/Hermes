@@ -302,7 +302,7 @@ The auxiliary slot update is then performed via a single ciphertext-ciphertext a
 
 Algorithm~\ref{alg:aggregation} formalizes the dual mechanism of global aggregation and incremental maintenance, illustrating how Hermes bypasses traditional computational bottlenecks. The procedure is divided into two distinct operational phases. In the first phase, the system evaluates global analytical queries by accumulating a collection of ciphertexts $c_1$ through $c_k$. Instead of unpacking and rotating individual data slots, Hermes iteratively applies homomorphic addition across the entire ciphertext collection. Because the precomputed local sums are deterministically aligned at the final auxiliary slot of each ciphertext, this SIMD operation natively computes the global aggregate using a single arithmetic evaluation per ciphertext. The second phase details the lightweight maintenance logic required when the underlying database tuple mutates. To keep the auxiliary statistic synchronized with the active payload, the system constructs a sparse plaintext vector $m_{sum}$ over the domain $\mathbb{Z}_t^n$. The update value $v$ is isolated at the final index $n-1$, leaving all other slots as zero. A scalar homomorphic addition then merges this sparse vector with the target ciphertext $c$, instantly updating the local accumulator. 
 
-\begin{algorithm}[ht]
+\begin{algorithm}[t]
 \caption{Homomorphic Aggregate and Maintenance}
 \label{alg:aggregation}
 \begin{algorithmic}[1]
@@ -444,7 +444,7 @@ The full proof can be found in Appendix~\ref{appendix:proofs}, where we provide 
 
 The primary advantage of Hermes lies in its reduction of the computational cost of aggregation queries. Table~\ref{tab:complexity} provides a quantitative comparison of Hermes against scalar FHE and standard packed FHE baseline.
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{Computational Complexity Comparison}
 \label{tab:complexity}
@@ -665,7 +665,7 @@ We evaluate the physical storage footprint of Hermes compared to the Singular FH
 
 By contrast, Hermes utilizes its SIMD-aware data model to batch 8192 tuples per ciphertext. For the same hg38 dataset, Hermes requires only 5 physical ciphertexts to store the entire logical table. Our empirical measurements show a total storage footprint of only 2.6 MB for Hermes, representing a reduction of over 6,000x in physical storage volume. Table~\ref{tab:storage_summary} provides a summary of the storage footprints across all evaluated datasets. This optimization is a result of slot utilization and the elimination of the massive object-level metadata overhead associated with maintaining tens of thousands of individual FHE objects in the MySQL engine.
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{Storage Footprint Comparison Across Datasets}
 \label{tab:storage_summary}
