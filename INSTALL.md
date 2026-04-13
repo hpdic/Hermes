@@ -1,4 +1,7 @@
 # Update on Apr 12, 2026: Added TPC-H benchmark results
+```bash
+~/hpdic/Hermes/experiments/script/load_tpch.sh
+```
 
 # Update on Mar 13, 2026 (on Chameleon Cloud)
 From now on, all repositories will be installed on ~/hpdic/ instead of ~/, to avoid cluttering the home directory. So the installation path of Hermes will be ~/hpdic/Hermes/. The installation steps are the same as before, just replace ~/Hermes with ~/hpdic/Hermes.
@@ -41,7 +44,7 @@ sudo make install
 ```bash
 sudo apt install mysql-server libmysqlclient-dev -y
 sudo mysql_secure_installation
-# Answer the interactive questions above (just enter for all of them)
+# Answer the interactive questions above (just press <enter> for all of them)
 ```
 
 ## Install IPCL (optional, for Intel Paillier)
