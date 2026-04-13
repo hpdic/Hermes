@@ -518,6 +518,8 @@ Once the core context is established in memory, we explicitly enable the require
 \section{Evaluation}
 \label{sec:evaluation}
 
+An example list of Hermes APIs is provided in Appendix~\ref{appendix:api}. 
+
 \subsection{Experimental Setup}
 \label{sec:datasets}
 
@@ -534,9 +536,13 @@ We evaluate Hermes on the standard TPC-H benchmark and three real-world datasets
 \end{itemize}
 
 \paragraph{Baselines}
-To comprehensively evaluate the architectural and algorithmic advantages of Hermes, we establish four distinct baselines. We partition these baselines into end-to-end system macrobenchmarks executed within the database engine and isolated cryptographic microbenchmarks.
+To evaluate the architectural and algorithmic advantages of Hermes, we establish four distinct baselines. We partition these baselines into end-to-end system macrobenchmarks executed within the database engine and isolated cryptographic microbenchmarks.
+
 For the end-to-end evaluations within MySQL, we compare Hermes against a Singular FHE approach and a Plaintext baseline. The Singular FHE baseline represents a naive integration where each database tuple is encrypted into an independent ciphertext without SIMD batching. This configuration highlights the computational and storage overheads of unpaced encryption and justifies our vectorized data model. The Plaintext baseline operates on completely unencrypted data using standard SQL queries. It serves as the absolute performance ceiling to quantify the exact system-level penalty introduced by our cryptographic layer.
+
 To isolate our algorithmic improvements from the inherent execution overhead of the database engine, we implement two additional baselines as standalone C++ microbenchmarks. The first is a Standard Packed FHE baseline, which utilizes the same multi-slot ciphertext layout as Hermes but relies on the conventional sequence of logarithmic Galois rotations and masking operations to compute aggregate sums. This comparison isolates the latency reduction achieved specifically by our auxiliary local sum embedding technique. The second microbenchmark employs the Paillier cryptosystem~\cite{paillier1999}, representing the traditional Partially Homomorphic Encryption (PHE) standard for secure database aggregations. Because Paillier supports only scalar additive homomorphism, this evaluation demonstrates how the vectorized parallelism of modern FHE outpaces legacy scalar schemes in analytical throughput.
+
+While several homomorphic prototypes such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384} exist, we exclude them from empirical comparison for two reasons. First, these works function as client-side standalone scripts rather than being integrated into the execution pipeline of a production-grade DBMS. Second, Hermes prioritizes strict IND-CPA security without access pattern leakage, whereas those alternatives rely on interactive protocols or property-preserving encryption that inherently weaken the threat model. Thus, we benchmark against Intel IPCL~\cite{ipcl_github} and OpenFHE~\cite{openfhe} to establish a baseline using identical cryptographic security levels.
 
 \paragraph{Objectives and Metrics}
 We structure experiments around four research questions (RQs):
@@ -548,12 +554,6 @@ We structure experiments around four research questions (RQs):
     \item RQ5: How does the logical group capacity influence the overall execution latency across different database operators? We analyze this in Section~\ref{sec:eval_scalability}.
     \item RQ6: To what extent does the vectorized packing model mitigate physical storage inflation across diverse datasets? We evaluate this in Section~\ref{sec:eval_storage}.
 \end{itemize}
-
-\paragraph{Scope of Comparison} 
-
-While several homomorphic prototypes such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384} exist, we exclude them from empirical comparison for two reasons. First, these works function as client-side standalone scripts rather than being integrated into the execution pipeline of a production-grade DBMS. Second, Hermes prioritizes strict IND-CPA security without access pattern leakage, whereas those alternatives rely on interactive protocols or property-preserving encryption that inherently weaken the threat model. Thus, we benchmark against Intel IPCL~\cite{ipcl_github} and OpenFHE~\cite{openfhe} to establish a baseline using identical cryptographic security levels.
-
-An example list of Hermes APIs is provided in Appendix~\ref{appendix:api}. 
 
 \subsection{TPC-H Benchmark}
 \label{sec:eval_tpch}
