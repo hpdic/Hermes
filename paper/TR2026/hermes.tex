@@ -629,8 +629,14 @@ We structure experiments around four research questions (RQs):
 
 While several homomorphic prototypes such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384} exist, we exclude them from empirical comparison for two reasons. First, these works typically function as standalone programmatic scripts rather than being integrated into the execution pipeline of a production-grade DBMS. Second, Hermes prioritizes strict IND-CPA security without any access pattern leakage, whereas those alternatives rely on interactive protocols or property-preserving encryption that inherently weaken the threat model. Thus, we benchmark against Intel IPCL~\cite{ipcl_github} and OpenFHE~\cite{openfhe} to establish a baseline using identical cryptographic security levels.
 
-The current evaluation focuses on single-attribute analytical workloads, as these represent the primary computational bottleneck for integrating FHE into relational engines. 
-By establishing a high-performance foundation for atomic relational operators, we demonstrate the practical feasibility of encrypted query processing.
+% The current evaluation focuses on single-attribute analytical workloads, as these represent the primary computational bottleneck for integrating FHE into relational engines. 
+% By establishing a high-performance foundation for atomic relational operators, we demonstrate the practical feasibility of encrypted query processing.
+
+\subsection{TPC-H Benchmark}
+\label{sec:eval_tpch}
+
+\don{TODO: Add TPC-H to demonstrate multi-attribute results}
+
 
 \subsection{Encryption Throughput}
 \label{sec:eval_encryption}
@@ -777,11 +783,11 @@ hg38 & 17.2 GB & 2.6 MB & 6615x \\ \hline
 
 This paper introduces Hermes, a prototype system designed to execute secure and efficient vectorized relational queries over homomorphically encrypted data. By incorporating a packed relational data model with embedded auxiliary aggregates, Hermes achieves constant-time encrypted aggregation while bypassing expensive cryptographic rotations. Furthermore, the introduction of data-oblivious mutability primitives allows for dynamic record-level insertions and deletions directly on packed ciphertexts via homomorphic shift and mask operations. Built seamlessly atop modern FHE schemes and deployed as native MySQL loadable functions, Hermes successfully bridges the gap between relational databases and cryptographic abstractions without modifying the core database engine. Extensive evaluations across diverse real-world datasets validate the efficacy of our approach, demonstrating massive performance gains in encryption throughput, tuple insertions, and deletions compared to state-of-the-art baselines.
 
-Moving forward, we plan to extend the capabilities of Hermes to support more complex relational algebraic operations, such as secure table joins and nested subqueries, which remain challenging in the fully homomorphic domain. We also aim to explore hardware acceleration techniques using GPUs or FPGAs to further reduce the latency of homomorphic shift and mask operations during high-volume transaction processing. Additionally, while the current integration is optimized for MySQL, adapting the Hermes architecture to other major database management systems could broaden its applicability across different enterprise environments. Finally, investigating multi-key homomorphic encryption schemes would allow Hermes to support collaborative data analytics scenarios where multiple independent entities can securely query combined encrypted datasets without sharing their private keys.
+% Moving forward, we plan to extend the capabilities of Hermes to support more complex relational algebraic operations, such as secure table joins and nested subqueries, which remain challenging in the fully homomorphic domain. We also aim to explore hardware acceleration techniques using GPUs or FPGAs to further reduce the latency of homomorphic shift and mask operations during high-volume transaction processing. Additionally, while the current integration is optimized for MySQL, adapting the Hermes architecture to other major database management systems could broaden its applicability across different enterprise environments. Finally, investigating multi-key homomorphic encryption schemes would allow Hermes to support collaborative data analytics scenarios where multiple independent entities can securely query combined encrypted datasets without sharing their private keys.
 
-\section*{Acknowledgments}
+% \section*{Acknowledgments}
 
-Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
+% Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{ref}
