@@ -1,5 +1,5 @@
-% \documentclass[sigconf,review,anonymous]{acmart}
-\documentclass[sigconf,nonacm]{acmart}
+\documentclass[sigconf,review,anonymous]{acmart}
+% \documentclass[sigconf,nonacm]{acmart}
 
 
 % Title portion
@@ -52,11 +52,11 @@
 \begin{document}
 
 \begin{abstract}
-Fully Homomorphic Encryption (FHE) promises the ability to compute over encrypted data without revealing sensitive contents. However, enabling this feature for high-frequency updates and statistical analysis in outsourced databases remains elusive due to the structural mismatch between mutable database records and the cryptographically expensive mutability of FHE ciphertexts.
+Fully Homomorphic Encryption (FHE) promises the ability to compute over encrypted data without revealing sensitive contents. However, enabling high-frequency updates and statistical analysis in outsourced databases remains elusive due to the structural mismatch between mutable database records and the cryptographically expensive mutability of FHE ciphertexts.
 
-This paper presents Hermes, a prototype system tailored for efficient global aggregation queries and dynamic tuple updates on homomorphically encrypted databases. The core design of Hermes is twofold. First, to amortize FHE costs and accelerate unconditional aggregations, Hermes introduces a data model aware of SIMD structures. Precomputed aggregate statistics become a primary element, dynamically maintained within the ciphertext to support constant time global aggregations without expensive Galois automorphisms. Second, to support mutable ciphertexts in-place, we develop data oblivious homomorphic algorithms built upon polynomial slot masking and shifting, provably secure under standard security models.
+This paper presents Hermes, a prototype system tailored for efficient aggregation queries and dynamic tuple updates on homomorphically encrypted databases. The core design of Hermes is twofold. First, to amortize FHE costs and accelerate unconditional aggregations, Hermes introduces a SIMD-aware packed data model that embeds precomputed aggregate statistics directly into each ciphertext, enabling constant-time global aggregations without expensive Galois automorphisms. Second, to support true in-place mutability, we develop homomorphic algorithms based on polynomial slot masking and shifting, which are provably secure under the standard IND-CPA model. We scope Hermes to unconditional global aggregations to achieve both high performance and in-place updates simultaneously, two properties that prior FHE database systems have not delivered at scale.
 
-Hermes is implemented as a suite of C++ loadable functions in MySQL. Extensive evaluations on the TPC-H benchmark and three real-world datasets demonstrate significant performance improvements in global query throughput, tuple insertions, and tuple deletions compared to conventional FHE implementations, validating its efficacy for highly dynamic and analytical workloads.
+Hermes is implemented as a suite of C++ loadable functions in MySQL. Extensive evaluations on the TPC-H benchmark and three real-world datasets demonstrate significant performance improvements in query throughput, tuple insertions, and tuple deletions compared to conventional FHE implementations, validating its efficacy for highly dynamic and analytical workloads.
 \end{abstract}
 
 \keywords{Database security, Fully homomorphic encryption, User-defined functions}
@@ -92,15 +92,6 @@ However, applying FHE to outsourced database systems remains an open challenge. 
 
 Resolving this structural divide requires carefully scoping the analytical workload. While evaluating arbitrary SQL queries with complex filtering predicates over packed ciphertexts currently incurs prohibitive homomorphic masking and rotation costs, a vast class of cloud analytics relies heavily on macroscopic statistical aggregations (e.g., global sums and overall counts) over highly dynamic datasets. Securing these specific workloads requires more than wrapping FHE function calls within SQL. It necessitates a connector that maps the dynamic mutability of transactional records to the rigid algebraic invariants of SIMD FHE. Without bridging these abstractions, applying cryptographic schemes to secure query processing remains impractical. 
 
-% \subsection{Background and Motivation}
-
-% Database systems have formed the backbone of modern data infrastructure, enabling structured storage, efficient retrieval, and scalable analytics. As the industry has transitioned to cloud-first architectures, the confidentiality of outsourced data has become a central concern. Increasingly, users demand end-to-end cryptographic protection throughout the entire computation pipeline, rather than merely during transmission or at rest~\cite{rag_sigmod04}.
-% Among cryptographic primitives, Fully Homomorphic Encryption (FHE) offers a mechanism to evaluate algebraic operations directly on encrypted data, removing the requirement to trust the compute server and, argubally more importantly, precluding internal attackers from within the cloud vendor. Following Gentry's theoretical (yet impractical due to the prohibitive computational costs) framework~\cite{gentry2009}, subsequent schemes such as BFV~\cite{FV2012} and CKKS~\cite{ckks2016} have improved computational efficiency and implementation maturity~\cite{openfhe}. FHE is now applied in practical domains, such as secure machine learning~\cite{boemer2020mp2ml,han2023} and privacy-preserving web services~\cite{bchen_www26,mkhan_icws24}.
-
-% However, database systems, especially those outsourced on the cloud, have yet to fully integrate FHE due to multiple technical issues. While extensive research exists on encrypted databases~\cite{otawose_sigmod23,popa2011cryptdb,arx_vldb19}, operating a query engine directly on semantically secure ciphertexts remains an open challenge.
-% One of the most notable issues stems from a structural mismatch between database semantics and cryptographic notion. Traditional database management systems are designed for mutable records, evolving schemas, and runtime query execution plans. In contrast, FHE schemes operate over static circuits and immutable (yet randomized, informally speaking) ciphertexts.
-% Resolving this structural divide requires more than wrapping FHE function calls within SQL. It necessitates a connector that maps the operational dynamics of query execution to the algebraic invariants of cryptographic computation. Without bridging these abstractions, applying cryptographic schemes to secure query processing remains impractical.
-
 \subsection{Proposed Work}
 
 We present \emph{Hermes}, a prototype system tailored to enable secure and efficient global aggregation queries and in-place tuple updates on homomorphically encrypted data. Built atop the multi-slot capabilities of modern FHE schemes, Hermes is implemented as a suite of native MySQL loadable functions interfacing with one of the most popular open-source FHE libraries, OpenFHE~\cite{openfhe}. Hermes introduces four key innovations:
@@ -108,8 +99,8 @@ We present \emph{Hermes}, a prototype system tailored to enable secure and effic
 \paragraph{(1) Packed Data Model}
 Hermes adopts a packed ciphertext representation that maps multiple database tuples and macroscopic aggregation results into parallel homomorphic slots. To break the performance bottleneck of homomorphic analytics, we design a physical layout that reserves a specific slot within each ciphertext. This dedicated slot stores a precomputed auxiliary value representing the unconditional local sum of the data slots. By embedding this state directly into physical storage, Hermes establishes a foundation for efficient global query execution that completely bypasses the need for costly cryptographic operations like Galois automorphisms. We elaborate on the design of this new data model in Section~\ref{sec:datamodel}.
 
-\paragraph{(2) Data-oblivious Mutability Primitives}
-To allow a single ciphertext to reflect the updates of mutable records, Hermes supports dynamic tuple-level modifications directly on packed ciphertexts. Insertions and deletions are executed via homomorphic shift-and-mask operations. Inserting a new record shifts a tail segment rightward, while deleting a record shifts the segment leftward to clear the target slot. These structural updates are performed using homomorphic masking and slot-wise addition without decryption, enabling true in-place mutability. We present the design of these primitives in Section~\ref{sec:primitives}.
+\paragraph{(2) Mutability Primitives}
+To allow a single ciphertext to reflect the updates of mutable records, Hermes supports dynamic tuple-level modifications directly on packed ciphertexts. Insertions and deletions are executed via homomorphic shift-and-mask operations. Inserting a new record shifts a tail segment rightward, while deleting a record shifts the segment leftward to clear the target slot. These structural updates are performed using homomorphic masking and slot-wise addition without decryption, enabling true in-place mutability. We present these primitives in Section~\ref{sec:primitives}.
 
 \paragraph{(3) Homomorphic Aggregation and Maintenance}
 Building upon the packed layout and mutability primitives, Hermes introduces a closed-loop mechanism for macroscopic analytical queries. Global encrypted aggregation queries such as \texttt{SUM} can be answered using constant-time ciphertext additions of the reserved auxiliary slots. When data mutations occur, Hermes synchronously updates this auxiliary slot using lightweight homomorphic scalar operations. This dual approach amortizes the computational overhead of FHE and significantly improves overall query throughput for unconditional workloads. We discuss this execution pipeline in Section~\ref{sec:aggregation}.
@@ -117,29 +108,32 @@ Building upon the packed layout and mutability primitives, Hermes introduces a c
 \paragraph{(4) Database Integration and Analysis}
 Hermes facilitates encrypted macro-analytical query execution in MySQL without client-side orchestration or kernel-level modifications. The system is realized as a collection of C++ modules registered via the MySQL loadable function interface. Furthermore, we provide a comprehensive theoretical analysis demonstrating the IND-CPA security of Hermes and formally establishing the asymptotic complexity of supported operations. The theoretical analysis and system implementation are detailed in Section~\ref{sec:analysis} and Section~\ref{sec:implementation}, respectively.
 
-Our extensive evaluations in Section~\ref{sec:evaluation} are conducted on the TPC-H benchmark and three real-world datasets covering diverse domains: genomic annotations, cryptocurrency trade volumes, and healthcare statistics. We comprehensively benchmark the system against four representative baselines: unencrypted plaintext SQL, conventional singular FHE, a standard packed FHE configuration relying on logarithmic Galois automorphisms~\cite{openfhe}, and the Intel Paillier Cryptosystem Library~\cite{ipcl_github}. Experiments demonstrate significant performance improvements on global query throughput, tuple insertions, and tuple deletions when compared to conventional FHE implementations.
-
-% \subsection{Proposed Work}
-
-% We present \emph{Hermes}, a prototype system that enables secure and efficient aggregation query and tuple updates on homomorphically encrypted data. Built atop the multi-slot capabilities of modern FHE schemes, Hermes is implemented as a suite of native MySQL loadable functions interfacing with one of the most popular open-source FHE libraries, OpenFHE~\cite{openfhe}. Hermes introduces four key innovations:
-
-% \paragraph{(1) Packed Data Model}
-% Hermes adopts a packed ciphertext representation that maps multiple database tuples and aggregation results into parallel homomorphic slots. To break the performance bottleneck of homomorphic analytics, we design a physical layout that reserves a specific slot within each ciphertext. This dedicated slot stores a precomputed auxiliary value representing the local sum of the data slots. By embedding this state directly into the physical storage, Hermes establishes a foundation for efficient query execution that completely bypasses the need for costly cryptographic operations like Galois automorphisms. We elaborate on the design of this new data model in Section~\ref{sec:datamodel}.
-
-% \paragraph{(2) Data-oblivious Mutability Primitives}
-% To allow a single ciphertext to reflect the updates of mutable records, Hermes supports dynamic tuple-level modifications directly on packed ciphertexts. Insertions and deletions are executed via homomorphic shift-and-mask operations. Inserting a new record shifts a tail segment rightward, while deleting a record shifts the segment leftward to clear the target slot. These structural updates are performed using homomorphic masking and slot-wise addition without decryption. We present the design of these primitives in Section~\ref{sec:primitives}.
-
-% \paragraph{(3) Homomorphic Aggregation and Maintenance}
-% Building upon the packed layout and mutability primitives, Hermes introduces a closed-loop mechanism for analytical queries. Encrypted aggregation queries such as \texttt{SUM} can be answered using constant-time ciphertext additions of the reserved auxiliary slots. When data mutations occur, Hermes synchronously updates this auxiliary slot using lightweight homomorphic scalar operations. This dual approach amortizes the computational overhead of FHE and significantly improves overall query throughput. We discuss this execution pipeline in Section~\ref{sec:aggregation}.
-
-% \paragraph{(4) Database Integration and Analysis}
-% Hermes facilitates an encrypted query execution in MySQL without client-side orchestration or kernel-level modifications. The system is realized as a collection of C++ modules registered via the MySQL loadable function interface. Furthermore, we provide a comprehensive theoretical analysis demonstrating the IND-CPA security of Hermes and formally establishing the asymptotic complexity of supported operations. The theoretical analysis and system implementation are detailed in Section~\ref{sec:analysis} and Section~\ref{sec:implementation}, respectively.
-
-% Our extensive evaluations in Section~\ref{sec:evaluation} are conducted on the TPC-H benchmark and three real-world datasets covering diverse domains: genomic annotations, cryptocurrency trade volumes, and healthcare statistics. We comprehensively benchmark the system against four representative baselines: unencrypted plaintext SQL, conventional singular FHE, a standard packed FHE configuration relying on logarithmic Galois automorphisms~\cite{openfhe}, and the Intel Paillier Cryptosystem Library~\cite{ipcl_github}. Experiments demonstrate significant performance improvements on query throughput, tuple insertions, and tuple deletions when compared to conventional FHE implementations.
+Section~\ref{sec:evaluation} reports the evaluation results on the TPC-H benchmark and three real-world datasets of diverse domains: genomic annotations, cryptocurrency trade volumes, and healthcare statistics. We comprehensively benchmark the system against four representative baselines: unencrypted plaintext SQL, conventional singular FHE, a standard packed FHE configuration relying on logarithmic Galois automorphisms~\cite{openfhe}, and the Intel Paillier Cryptosystem Library~\cite{ipcl_github}. Experiments demonstrate significant performance improvements on global query throughput, tuple insertions, and tuple deletions when compared to conventional FHE implementations.
 
 \section{Related Work and Preliminaries}
 
 \subsection{Encrypted Databases}
+
+\begin{table*}[t]
+\centering
+\caption{Qualitative Comparison of Encrypted Database Systems}
+\label{tab:qualitative_comparison}
+\begin{tabular}{lcccr}
+\toprule
+System & Data Model & Tuple Update & Security Guarantee & Aggregation Cost \\
+\midrule
+CryptDB~\cite{popa2011cryptdb} & Scalar & Interactive & Leaks Access Pattern & $\mathcal{O}(N)$ \\
+Paillier (IPCL)~\cite{ipcl_github} & Scalar & Reencryption & IND-CPA & $\mathcal{O}(N)$ \\
+Symmetria~\cite{symmetria_vldb20} & Scalar & Reencryption & IND-CPA & $\mathcal{O}(N)$ \\
+HE3DB~\cite{10.1145/3576915.3616608} / ArcEDB~\cite{10.1145/3658644.3670384} & Mixed & Multi-round Protocol & Interactive / Weakened & $\mathcal{O}(N)$ \\
+Singular FHE~\cite{BGV2014} & Scalar & Reencryption & IND-CPA & $\mathcal{O}(N)$ \\
+Rache~\cite{otawose_sigmod23} & Scalar & Cached Encryption & IND CPA & $\mathcal{O}(\log N)$ \\
+Standard Packed~\cite{BGV2014} & SIMD Packed & Reencryption & IND-CPA & $\mathcal{O}(\log N)$ \\
+\midrule
+Hermes (this work) & Auxiliary Packed & In-place & IND-CPA & $\mathcal{O}(1)$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 One major class of encrypted databases relies on client-side processing, where query execution is deferred until the encrypted data is downloaded to a trusted local environment~\cite{akavia_sec23}. While this architecture strictly minimizes trust assumptions by keeping all analytical logic away from the cloud provider, it inherently sacrifices the computational benefits of server-side scalability. Transferring large volumes of encrypted records across the network incurs severe bandwidth penalties and high latency, effectively reducing the cloud database management system to a passive storage repository rather than an active execution engine.
 
@@ -152,6 +146,8 @@ but operates on immutable ciphertexts and functions as a client-side standalone 
 Additional efforts from the applied cryptography community, such as HE3DB~\cite{10.1145/3576915.3616608} and ArcEDB~\cite{10.1145/3658644.3670384}, introduce specialized arithmetic and logic operators to support broader SQL semantics over ciphertexts. However, to achieve this expressiveness, these solutions necessitate multi-round interactive protocols between the client and server or rely on property-preserving encryption. Both approaches deviate from the ideal non-interactive and zero-leakage execution model, introducing either severe network latency or statistical access-pattern vulnerabilities. Furthermore, such systems typically operate as standalone programmatic prototypes rather than being integrated into an industry-standard database engine.
 
 To mitigate the extreme performance penalties and noise growth of FHE, recent query engines like NSHEDB~\cite{jung2026nshedbnoisesensitivehomomorphicencrypted} rely on word-level leveled homomorphic encryption. Despite these cryptographic advances, existing homomorphic databases typically operate on scalar records, encrypting individual database attributes into isolated ciphertexts. This approach fails to exploit the parallel processing capabilities of modern FHE schemes, leading to massive storage inflation and computational bottlenecks during query execution. In contrast, Hermes prioritizes a strictly non-interactive, IND-CPA secure architecture via a packed data model. By focusing on macroscopic analytical workloads, we avoid the security and performance trade-offs inherent in supporting line-item logic, delivering a native system that provides strong payload confidentiality guarantees under the IND-CPA security model.
+
+To summarize the landscape of encrypted database systems, Table~\ref{tab:qualitative_comparison} provides a qualitative comparison across key architectural and cryptographic dimensions. Early systems rely on property-preserving encryption or layered encryption onions, which inherently leak statistical access patterns. More recent homomorphic solutions such as HE3DB and ArcEDB offer richer SQL semantics but necessitate multi-round interactive protocols that introduce additional network latency. While standard packed FHE approaches mitigate some storage inflation, they incur logarithmic computational overhead during global aggregations due to expensive Galois automorphisms. Hermes differentiates itself by offering a strictly non-interactive, IND-CPA secure architecture. By embedding precomputed local sums into a designated auxiliary slot, Hermes achieves true in-place dynamic updates and constant-time global aggregations, bypassing the traditional performance bottlenecks of existing FHE databases.
 
 \subsection{Fully Homomorphic Encryption}
 \label{sec:prelim-he}
@@ -186,33 +182,36 @@ where the rotation index \( r \) corresponds to a specific automorphism in the G
 
 \subsection{Alternative Secure Processing Paradigms}
 
-Alongside purely cryptographic storage, trusted hardware enclaves provide an alternative route for secure data processing. Systems utilizing Intel SGX such as ObliDB~\cite{10.14778/3364324.3364331} and CryptSQLite~\cite{8946540} protect data in memory while offering oblivious query processing to prevent access pattern leaks. Enterprise solutions have also adopted this paradigm. For instance, recent iterations of Azure SQL Database~\cite{10.1145/3318464.3386141} leverage enclaves to enable rich pattern matching over encrypted columns. Furthermore, hardware isolation techniques have been proposed to secure peripheral interfaces and web environments against side channel attacks~\cite{8835331}. While enclaves deliver high performance, they introduce strict hardware dependencies and remain vulnerable to sophisticated microarchitectural exploits, which pure homomorphic encryption avoids.
+Alongside purely cryptographic storage, trusted hardware enclaves provide an alternative route for secure data processing. Systems utilizing Intel SGX such as ObliDB~\cite{10.14778/3364324.3364331} and CryptSQLite~\cite{8946540} protect data in memory while offering privacy-preserving query processing to prevent access pattern leaks. Enterprise solutions have also adopted this paradigm. For instance, recent iterations of Azure SQL Database~\cite{10.1145/3318464.3386141} leverage enclaves to enable rich pattern matching over encrypted columns. Furthermore, hardware isolation techniques have been proposed to secure peripheral interfaces and web environments against side channel attacks~\cite{8835331}. While enclaves deliver high performance, they introduce strict hardware dependencies and remain vulnerable to sophisticated microarchitectural exploits, which pure homomorphic encryption avoids.
 
 Another prominent paradigm involves Secure Multi-party Computation and federated privacy. Frameworks like Conclave~\cite{10.1145/3302424.3303982} and Shrinkwrap~\cite{10.14778/3291264.3291274} accelerate analytics over big data by partitioning queries between cleartext local processing and secure protocols. Similarly, advanced join aggregate queries can be evaluated across private datasets without exposing individual records~\cite{10.1145/3448016.3452808}. Managing cross cryptographic leakages in such distributed databases is a complex endeavor~\cite{10598104}. Additionally, massive parallel query optimization strategies~\cite{10.1145/2038916.2038928} and Private Information Retrieval~\cite{10.1109/TKDE.2012.90} remain essential for scalable data extraction. However, multi-party protocols inherently require heavy network synchronization among non-colluding servers, which is a fairly strong assumption that may or may not hold for many practical scenarios. Hermes bypasses these bottlenecks by shifting the computational burden entirely to the server-side evaluation of SIMD-packed ciphertexts.
 
-\subsection{Terminology and Notation}
-\label{sec:prelim-notation}
+% \subsection{Terminology and Notation}
+% \label{sec:prelim-notation}
 
-We summarize key terms and notation used throughout this paper. Let $n$ denote the number of slots supported by the plaintext modulus and ring parameters of the BFV encryption scheme. All vectors are implicitly assumed to be over $\mathbb{Z}_t^n$, where $t$ is the plaintext modulus.
+% We summarize key terms and notation used throughout this paper. Let $n$ denote the number of slots supported by the plaintext modulus and ring parameters of the BFV encryption scheme. All vectors are implicitly assumed to be over $\mathbb{Z}_t^n$, where $t$ is the plaintext modulus.
 
-\paragraph{Slot} Each ciphertext encodes a vector of $n$ plaintext elements, known as \emph{slots}. Slots are independently addressable under SIMD operations supported by BFV.
+% \paragraph{Slot} Each ciphertext encodes a vector of $n$ plaintext elements, known as \emph{slots}. Slots are independently addressable under SIMD operations supported by BFV.
 
-  % \item \textbf{Ciphertext:} A ciphertext $c \in \mathcal{C}$ is a BFV-encoded object that homomorphically encrypts $[m_0, \dots, m_{n-1}]$ for some plaintext values $m_i \in \mathbb{Z}_t$. Ciphertexts may undergo operations such as addition, multiplication, and automorphic permutation.
+%   % \item \textbf{Ciphertext:} A ciphertext $c \in \mathcal{C}$ is a BFV-encoded object that homomorphically encrypts $[m_0, \dots, m_{n-1}]$ for some plaintext values $m_i \in \mathbb{Z}_t$. Ciphertexts may undergo operations such as addition, multiplication, and automorphic permutation.
 
-\paragraph{Group ID} Input tuples are partitioned by a logical \emph{group ID}, which assigns each record to a packed vector instance. All records within the same group are encoded into the same ciphertext. The mapping from record to group is deterministic and index-driven.
+% \paragraph{Group ID} Input tuples are partitioned by a logical \emph{group ID}, which assigns each record to a packed vector instance. All records within the same group are encoded into the same ciphertext. The mapping from record to group is deterministic and index-driven.
 
-\paragraph{Auxiliary Sum Slot} Hermes reserves the final slot (slot $n{-}1$) in each ciphertext to store the \emph{local sum}, i.e., the plaintext sum $\sum_{j=0}^{n-2} m_j$ of all slots. This value is computed at packing time and used to accelerate encrypted aggregation without Galois rotation.
+% \paragraph{Auxiliary Sum Slot} Hermes reserves the final slot (slot $n{-}1$) in each ciphertext to store the \emph{local sum}, i.e., the plaintext sum $\sum_{j=0}^{n-2} m_j$ of all slots. This value is computed at packing time and used to accelerate encrypted aggregation without Galois rotation.
 
-\paragraph{Packed Representation} A ciphertext that stores $n{-}1$ application values and one auxiliary statistic is referred to as a \emph{packed representation}. This format enables efficient aggregation via SIMD-aware primitives.
+% \paragraph{Packed Representation} A ciphertext that stores $n{-}1$ application values and one auxiliary statistic is referred to as a \emph{packed representation}. This format enables efficient aggregation via SIMD-aware primitives.
 
-\paragraph{Logical Length} Some plaintext vectors do not occupy all $n$ slots. The number of meaningful entries is called the \emph{logical length}, and is used to control serialization, summation, and slot masking.
+% \paragraph{Logical Length} Some plaintext vectors do not occupy all $n$ slots. The number of meaningful entries is called the \emph{logical length}, and is used to control serialization, summation, and slot masking.
 
 \section{Hermes: Native FHE for Outsourced Databases}
 
-To provide a comprehensive roadmap of the Hermes architecture, we begin by defining the SIMD-aware packed data model in Section~\ref{sec:datamodel}, which establishes the physical foundation for vectorized storage and slot alignment. Following this, Section~\ref{sec:primitives} describes the suite of data-oblivious primitives that enable in-place mutability through homomorphic masking and shifting. Section~\ref{sec:aggregation} then introduces the accelerated aggregation pipeline and its associated maintenance logic, leveraging reserved auxiliary slots to bypass traditional Galois automorphism bottlenecks. Finally, Section~\ref{sec:analysis} provides a theoretical treatment of system security and analysis.
+To provide a comprehensive roadmap of the Hermes architecture, we begin by defining the SIMD-aware packed data model in Section~\ref{sec:datamodel}, which establishes the physical foundation for vectorized storage and slot alignment. Following this, Section~\ref{sec:primitives} describes the suite of primitives that enable in-place mutability through homomorphic masking and shifting. Section~\ref{sec:aggregation} then introduces the accelerated aggregation pipeline and its associated maintenance logic, leveraging reserved auxiliary slots to bypass traditional Galois automorphism bottlenecks. Finally, Section~\ref{sec:analysis} provides a theoretical treatment of system security and analysis.
 
 \subsection{Hermes Data Model}
 \label{sec:datamodel}
+
+Before detailing the system architecture, we establish the core data representation used in Hermes. We assume the underlying BFV scheme provides $n$ independent plaintext slots over $\mathbb{Z}_t^n$. Rather than treating all $n$ slots equally, Hermes introduces a new \emph{Packed Representation}. 
+Specifically, input records are partitioned by a deterministic, index-driven \emph{Group ID}, with all records sharing the same ID packed into a single ciphertext vector. To bypass the extreme overhead of Galois automorphisms during homomorphic aggregation, Hermes reserves the final slot (slot $n-1$) as an \emph{Auxiliary Sum Slot}. During the initial packing phase, this slot is pre-computed to store the local plaintext sum ($\sum_{j=0}^{n-2} m_j$) of the preceding data slots. Furthermore, to accommodate dynamic data sizes, Hermes tracks the \emph{Logical Length} of each ciphertext, representing the number of actively populated entries, to precisely control serialization, homomorphic summation, and slot masking operations.
 
 To bridge the structural mismatch between database tables and lattice-based cryptographic objects, we propose a slot-aware packing layout. Database engines like MySQL traditionally operate on a row-by-row basis, whereas modern homomorphic encryption achieves acceptable throughput exclusively via vectorized polynomial operations. In our model, each ciphertext acts as a secure, fixed-size container holding a strictly aligned group of database records. This architecture amortizes the heavy encryption cost across thousands of tuples and establishes the foundational algebraic structure required for efficient SIMD-style query processing over the encrypted domain.
 
@@ -232,7 +231,7 @@ m = (v_0, v_1, \dots, v_{n-2}, s) \in \mathbb{Z}_t^n
 \]
 where $t$ remains the plaintext modulus. The extended vector $m$ is then passed to the BFV encoding API to generate a packed polynomial plaintext object, which is subsequently encrypted into a randomized ciphertext. 
 
-This physical layout effectively repurposes the final slot at index $n-1$ as an isolated local accumulator. Because BFV ciphertexts naturally support SIMD-style circuit evaluations, all raw data and the auxiliary sum coexist securely within a single ciphertext boundary. Since the accumulator is computed before the application of encryption noise, this initial embedding operation incurs zero homomorphic overhead. 
+This layout repurposes the final slot at index $n-1$ as an isolated local accumulator. Because BFV ciphertexts naturally support SIMD-style circuit evaluations, all raw data and the auxiliary sum coexist securely within a single ciphertext boundary. Since the accumulator is computed before the application of encryption noise, this embedding operation incurs zero homomorphic overhead. 
 
 In the Hermes model, mapping relational integers into the finite field $\mathbb{Z}_t$ introduces strict boundary constraints. The database engine must ensure that the accumulated sum $s$ does not exceed the plaintext modulus $t$ to prevent silent mathematical overflows during runtime. By formalizing this static data model and enforcing these modulus boundaries, Hermes transforms complex multi-tuple structures into manageable, hardware-friendly relational vectors, setting the precise stage for the dynamic mutability primitives discussed in the remainder of this paper.
 
@@ -244,11 +243,10 @@ To allow a single packed ciphertext to dynamically reflect the updates of mutabl
 \subsubsection{Homomorphic Insertion}
 
 Hermes supports the in-place insertion of plaintext values into packed ciphertexts. The objective is to insert a new value $v$ into logical slot $i$ of an existing ciphertext $c$, where slots $i$ through $n-2$ may already contain payload data. Since ciphertexts are encoded as fixed-size relational vectors, this operation requires shifting all subsequent entries rightward by one position. This is analogous to an array insertion, yet it is performed entirely under encryption.
-
 The procedure utilizes homomorphic Galois rotations and plaintext masks. We first isolate the tail of the vector using a preservation mask and shift it rightward. Concurrently, we isolate the head of the vector to keep the preceding records intact. The new value is then encrypted and injected into the target slot. Finally, the auxiliary local sum at the end of the ciphertext is synchronously updated via a scalar plaintext addition.
 
 \begin{algorithm}[t]
-\caption{Data-Oblivious Homomorphic Insertion}
+\caption{Homomorphic Insertion}
 \label{alg:insertion}
 \begin{algorithmic}[1]
 \Require Ciphertext $c$, Target index $i$, \textbf{Ciphertext} $c_v \leftarrow \mathsf{Enc}(v)$, Capacity $n$
@@ -275,14 +273,13 @@ Algorithm~\ref{alg:insertion} formalizes the homomorphic insertion procedure, wh
 \subsubsection{Homomorphic Deletion}
 
 Hermes enables encrypted deletion by simulating a logical left-shift over the underlying slots. The goal is to remove the value at slot $i$ and maintain a compacted layout where all subsequent values are shifted leftward to fill the void. The final payload slot is then cleared.
-
 The deletion procedure follows a symmetric logic to insertion. Hermes isolates the subvector corresponding to slots $i+1$ through $n-2$ and rotates it leftward by one position. A zeroing mask is subsequently applied to clear the final payload slot, which would otherwise contain a stale duplicate value due to the shift. The original head of the vector is preserved and merged with the shifted tail. The local sum is then decremented by the deleted value via plaintext subtraction.
 
 Algorithm~\ref{alg:deletion} details the formal steps for the homomorphic deletion procedure, which mirrors the insertion logic to securely remove a record while maintaining the compacted structure of the packed ciphertext. The operation starts by isolating the segments of the payload that will remain in the database. Using homomorphic multiplications, the system applies the mask $m_{head}$ to retain the records before the target index $i$, and the mask $m_{tail}$ to capture the records after index $i$, effectively dropping the deleted value from the active state. To fill the structural void left by the deletion, the system applies a Galois automorphism to $c_{tail}$, executing a leftward shift of exactly one position. Because this rotation can introduce stale values at the boundary of the payload, a zeroing mask $z$ is applied to clear the final data slot, producing a sanitized tail segment $c_{clean}$. The preserved head and the shifted tail are then combined via homomorphic addition. Finally, to keep the encrypted aggregate consistent, Hermes constructs a sparse vector containing the negated value $-v$ at the auxiliary index $n-1$ and performs a scalar addition. This guarantees that the global sum accurately reflects the deletion without requiring any decryption or revealing the removed slot position.
 
 
 \begin{algorithm}[t]
-\caption{Data-Oblivious Homomorphic Deletion}
+\caption{Homomorphic Deletion}
 \label{alg:deletion}
 
 \begin{algorithmic}[1]
@@ -366,10 +363,10 @@ A single ciphertext-ciphertext addition $\mathsf{EvalAdd}(c,\, c_{\mathit{aux}})
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Security and Performance Analysis}
+\section{Security and Performance Analysis}
 \label{sec:analysis}
 
-\subsubsection{Security Model and Assumptions}
+\subsection{Security Model and Assumptions}
 \label{sec:security_model}
 
 We analyze the security of Hermes under the standard indistinguishability under chosen-plaintext attack (IND-CPA) model, instantiated using BFV~\cite{FV2012}. We assume a passive, honest-but-curious adversary with full access to encrypted database contents, including ciphertexts before and after updates, as well as query results. The adversary may observe ciphertext structure, slot layout, and numerical patterns in decrypted outputs but is assumed to follow protocol without actively deviating from the query logic. 
@@ -382,7 +379,7 @@ We characterize the security guarantees of Hermes through the following invarian
 \begin{enumerate}
   \item \textit{Indistinguishability of Ciphertexts:} For any two payload vectors $v$ and $v'$ of the same length, their packed ciphertexts $c = \texttt{Encrypt}(v)$ and $c' = \texttt{Encrypt}(v')$ are computationally indistinguishable under the IND-CPA security of BFV.
   
-  \item \textit{Structural Profile.} For an insertion or deletion targeting logical slot $i$ within group $g$, the server observes the plaintext position mask $\mathbf{m}^{(i)}$, from which the intra-group slot index $i$ is deducible; the updated value itself remains encrypted and is never exposed.
+  \item \textit{Structural Profile:} For an insertion or deletion targeting logical slot $i$ within group $g$, the server observes the plaintext position mask $\mathbf{m}^{(i)}$, from which the intra-group slot index $i$ is deducible; the updated value itself remains encrypted and is never exposed.
   
   \item \textit{Aggregation Consistency:} Global aggregation over auxiliary slots (e.g., encrypted `SUM') reveals no more information than the final aggregate result; the per-ciphertext local sum values are protected under the encryption scheme.
 
@@ -391,9 +388,10 @@ We characterize the security guarantees of Hermes through the following invarian
 
 The proposed Hermes data model and update interface preserve these properties without relying on secure multi-party computation (MPC), secure enclaves, or trusted client-side computation. All operations, such as packing, insert/delete, and aggregation, are executed on encrypted data within the untrusted database server.
 
-This model captures realistic cloud deployment scenarios where users outsource encrypted databases to an untrusted cloud provider but wish to retain strong confidentiality guarantees under standard cryptographic assumptions (e.g., Ring-LWE hardness). We note that this threat model is stronger than many property-preserving encryption (PPE) systems, which often leak order, frequency, or access pattern by design.
+This model captures realistic cloud deployment scenarios where users outsource encrypted databases to an untrusted cloud provider but wish to retain strong confidentiality guarantees under standard cryptographic assumptions (e.g., Ring-LWE hardness). We note that this threat model is stronger than many property-preserving encryption (PPE) systems, which often leak order, frequency, or access pattern by design. However, like any packed FHE design that supports in-place updates, Hermes inevitably reveals the intra-group slot position via the public plaintext mask used in shift-and-mask operations. We consider this structural profile an acceptable and deliberate trade-off to achieve both practical performance and true mutability, 
+which have not been simultaneously supported by prior FHE database systems.
 
-\subsubsection{IND-CPA Security}
+\subsection{IND-CPA Security}
 
 The semantic security of Hermes relies on the assumption that the underlying BFV scheme remains IND-CPA secure under all ciphertext manipulations performed in the system. This includes ciphertext packing, masked updates, homomorphic insertion and deletion, and the embedding of auxiliary local statistics such as the group sum. 
 We now argue that the structural profile described in Section~\ref{sec:security_model} does not compromise the IND-CPA security of payload values.
@@ -427,7 +425,7 @@ The full proof can be found in Appendix~\ref{appendix:proofs}, where we construc
 An important subtlety in Hermes is the deterministic embedding of auxiliary data into a fixed slot. While this creates a structural invariant, it does not violate IND-CPA since the data being embedded is functionally independent on other encrypted slots. From a cryptographic perspective, this corresponds to publishing a function $f(v_0, \dots, v_{n-2}) = s$ along with the encryption of the vector, which is a standard practice in FHE-based secure computation.
 Furthermore, all masking and slot operations are purely homomorphic and do not involve conditional branching or secret-dependent control flow. No part of the computation leaks information via side channels, timing, or slot access patterns. 
 
-\subsubsection{Correctness of Encrypted Updates and Aggregates}
+\subsection{Correctness of Updates and Aggregates}
 
 We now formally prove that Hermes \emph{correctly} maintains the semantics of encrypted vector updates and aggregate computations in the presence of insertions and deletions. 
 
@@ -448,9 +446,10 @@ Similarly, the auxiliary local sum is incrementally maintained via homomorphic s
 The full proof can be found in Appendix~\ref{appendix:proofs}, where we provide a rigorous algebraic verification of each property, demonstrating that the homomorphic operations in Hermes faithfully implement the intended database semantics under encryption.
 \end{proof}
 
-\subsubsection{Computational Complexity}
+\subsection{Computational Complexity}
 
 The primary advantage of Hermes lies in its reduction of the computational cost of aggregation queries. Table~\ref{tab:complexity} provides a quantitative comparison of Hermes against scalar FHE and standard packed FHE baseline.
+This asymptotic improvement is the theoretical foundation for the significant speedups observed in our experimental evaluation. By shifting the complexity from rotation-heavy query time to lightweight update time, Hermes effectively bridges the gap between database performance and cryptographic security.
 
 \begin{table}[t]
 \centering
@@ -466,9 +465,8 @@ The primary advantage of Hermes lies in its reduction of the computational cost 
 \end{tabular}
 \end{table}
 
-This asymptotic improvement is the theoretical foundation for the significant speedups observed in our experimental evaluation. By shifting the complexity from rotation-heavy query time to lightweight update time, Hermes effectively bridges the gap between database performance and cryptographic security.
 
-\subsubsection{Noise Budget}
+\subsection{Noise Budget}
 \label{sec:noise_derivation}
 
 To justify the sustainability of Hermes updates, we provide a formal analysis of noise growth within the BFV encryption context. 
@@ -496,6 +494,8 @@ the auxiliary slot update applies a ciphertext-ciphertext addition instead of a 
 Empirically, this increases the per-operation noise consumption by at most $0.2$ bits under our parameter configuration ($d = 2$, $t = 65537$, $N = 2^{14}$),
 leaving the cumulative bound and the \mbox{45-update} threshold unchanged.
 
+While this 45-update threshold represents a theoretical bound, it aligns with the operational reality of analytical database systems. In typical OLAP workloads, data aggregations are evaluated on a daily or weekly basis. It is exceptionally rare for a single encrypted analytical record to undergo 45 independent updates within such a short temporal window. To ensure long-term sustainability, system administrators can easily schedule routine ciphertext repackaging tasks during off-peak hours. This background maintenance refreshes the noise budget completely without introducing any latency to daytime query executions. Looking forward, recent advancements in reliable non-leveled FHE optimizations \cite{bchen_www26} present a promising architectural alternative. Transitioning to a non-leveled paradigm could theoretically eliminate the noise budget constraint entirely through continuous homomorphic bootstrapping. However, given the substantial computational overhead still associated with bootstrapping operations, Hermes currently retains its leveled design to prioritize sub-millisecond query latency and high-throughput analytical performance, leaving non-leveled integration as a direction for future system iterations. 
+
 \section{System Implementation}
 \label{sec:implementation}
 
@@ -519,24 +519,9 @@ This memory-centric layout minimizes I/O overhead during query execution. When o
 
 \subsection{Context and Key Management}
 
-To ensure consistent cryptographic behavior across all SQL plugin functions, Hermes constructs a single shared encryption context during the initialization phase. This context is generated using the OpenFHE \texttt{GenCryptoContext} API. We parameterize the environment with a plaintext modulus $t = 65537$, a ring dimension $N = 2^{14}$, and a multiplicative depth $d = 2$. These parameters are selected to balance computational latency with a sufficient noise budget for query evaluations.
+To ensure consistent cryptographic behavior across all functions, Hermes constructs a shared context during the initialization phase. This context is generated using the OpenFHE \texttt{GenCryptoContext} API. We parameterize the environment with a plaintext modulus $t = 65537$, a ring dimension $N = 2^{14}$, and a multiplicative depth $d = 2$. These parameters are selected to balance computational latency with a sufficient noise budget for query evaluations.
 
 Once the core context is established in memory, we explicitly enable the required OpenFHE operational modes, including Public Key Encryption (PKE), Leveled Somewhat Homomorphic Encryption (SHE), and Advanced SHE to unlock evaluation keys. Key generation occurs once at system startup. \texttt{KeyGen()} is invoked to produce the public and secret keys. Subsequently, Hermes generates the necessary auxiliary cryptographic materials. This involves calling \texttt{EvalMultKeyGen()} to create relinearization keys and \texttt{EvalSumKeyGen()} along with \texttt{EvalAtIndex()} to generate the Galois keys required for slot rotation algorithms. All cryptographic keys and the evaluation context are encapsulated within static C++ global variables protected by thread-safe initialization flags.
-
-\subsection{Foreign Function Interface and Data Parsing}
-
-Bridging the gap between the MySQL C based API and the modern C++17 logic of OpenFHE requires a robust Foreign Function Interface (FFI). All data entering the plugin arrives as raw C pointers within the \texttt{UDF\_ARGS} structure. Hermes implements a custom parsing layer to map these inputs to internal data structures. When numeric data is passed as a string result, the system utilizes the standard \texttt{std::istringstream} object to perform safe conversion to 64 bit signed integers.
-
-For ciphertext management, Hermes avoids the cost of serializing large objects into SQL blobs. Instead, we return a hexadecimal string representation of the memory address. This pointer based approach allows subsequent UDF calls to resolve the ciphertext object by casting the string back to a \texttt{Ciphertext<DCRTPoly>} pointer. To ensure memory safety, every pointer resolution step is accompanied by a validation check to confirm that the address resides within the expected memory segment of the MySQL process.
-
-\subsection{Challenges and Learned Lessons}
-
-Integrating complex cryptographic libraries into a mature database engine reveals several non trivial engineering challenges that are often overlooked in theoretical FHE literature. One primary obstacle is the implicit memory management of the MySQL UDF interface. Specifically, the default 256-byte return buffer for string results is a silent constraint. Exceeding this limit without manual re allocation or careful length tracking leads to silent truncation or memory corruption. Hermes addresses this by implementing a length monitoring layer that bypasses the default buffer when handling large metadata footprints, ensuring that the heavy cryptographic pointers remain intact across the foreign function interface.
-
-Furthermore, maintaining a consistent encryption context across isolated SQL function calls requires a delicate balance between C linkage compatibility and modern C++ idioms. Because UDFs require \texttt{extern `C'} visibility for symbol resolution, the use of RAII and smart pointers for managing OpenFHE objects is restricted at the entry points. This forces the system to rely on manual pointer passing and global heap management, which increases the risk of memory leaks if the MySQL thread handling logic deviates from expected lifecycles. Our experience suggests that the lack of native support for C++ class instances in the UDF interface is a significant hurdle for integrating modern homomorphic libraries.
-
-Finally, we observed that the initialization sequence for homomorphic evaluation keys is extremely sensitive. Failure to generate Galois keys in the precise order, or attempting to regenerate them within a shared library handle, results in undocumented runtime failures that are difficult to trace via standard database logs. Hermes mitigates this by enforcing a singleton-driven initialization protocol that ensures that global cryptographic states are established exactly once during the server startup phase. 
-
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -581,20 +566,19 @@ We structure experiments around four research questions (RQs):
 \subsection{TPC-H Benchmark}
 \label{sec:eval_tpch}
 
-To evaluate the robustness and scalability of Hermes in standard analytical scenarios, we conduct a comprehensive evaluation using the TPC-H benchmark. Our experiments focus on two representative tables: the \texttt{lineitem} table for analytical queries and the \texttt{orders} table for data maintenance operations. We vary the tuple count within a single logical group from 1,000 to 15,000 to analyze the scalability of three distinct workloads: (1) simplified Q1 aggregation (\texttt{SUM}), (2) oblivious record insertion, and (3) oblivious record deletion.
+To evaluate the robustness and scalability of Hermes in standard analytical scenarios, we conduct a comprehensive evaluation using the TPC-H benchmark. Our experiments focus on two representative tables: the \texttt{lineitem} table for analytical queries and the \texttt{orders} table for data maintenance operations. We vary the tuple count within a single logical group from 1,000 to 15,000 to analyze the scalability of three distinct workloads: (1) simplified Q1 aggregation (\texttt{SUM}), (2) record insertion, and (3) record deletion.
 
 \paragraph{Workload 1: Q1 Aggregation} 
 We first evaluate the performance of a global \texttt{SUM} aggregation on the \texttt{l\_quantity} column of the \texttt{lineitem} table, comparing Hermes against a plaintext MySQL baseline. As shown in Figure \ref{fig:tpch_eval}(a), the latency of native plaintext SQL grows linearly from 20~ms to 80~ms as the tuple count increases, reflecting the O(N) complexity of row-by-row scanning. In contrast, Hermes exhibits near-constant latency ($\approx$42~ms) across all scales. This is because Hermes leverages precomputed auxiliary sum slots embedded during ingestion, transforming the query into a constant-time ciphertext addition. Notably, Hermes achieves a performance crossover, outperforming plaintext MySQL once the group size exceeds 10,000 tuples.
 
-\paragraph{Workload 2 \& 3: Oblivious Modifications.} 
-We evaluate the mutability primitives using the \texttt{o\_totalprice} column in the \texttt{orders} table. We compare Hermes's packed mutability against a Scalar FHE baseline, which must process every record in a group to maintain access pattern privacy (O(N) oblivious cost). 
-As illustrated in Figures \ref{fig:tpch_eval}(b) and \ref{fig:tpch_eval}(c), the Scalar FHE baseline suffers from a prohibitive linear increase in latency, reaching over 9,000 seconds for 5 operations at the 15,000-tuple scale. Conversely, Hermes maintains almost constant-time execution for both insertions and deletions. By utilizing homomorphic shift-and-mask operations directly on packed ciphertexts, Hermes decouples the cost of oblivious updates from the data volume, achieving orders-of-magnitude speedups compared to conventional scalar deployments.
+\paragraph{Workload 2 \& 3: Record Modifications.} 
+We evaluate the mutability primitives using the \texttt{o\_totalprice} column in the \texttt{orders} table. We compare Hermes's packed mutability against a Scalar FHE baseline, which must process every record in a group to maintain access pattern privacy (O(N) I/O cost). 
+As illustrated in Figures \ref{fig:tpch_eval}(b) and \ref{fig:tpch_eval}(c), the Scalar FHE baseline suffers from a prohibitive linear increase in latency, reaching over 9,000 seconds for 5 operations at the 15,000-tuple scale. Conversely, Hermes maintains almost constant-time execution for both insertions and deletions. By utilizing homomorphic shift-and-mask operations directly on packed ciphertexts, Hermes decouples the cost of record updates from the data volume, achieving orders-of-magnitude speedups compared to conventional scalar deployments.
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{fig/eval_tpch.pdf}
 \caption{Three workloads on TPC-H \texttt{lineitem} and \texttt{orders} tables across varying tuple counts. 
-% (a) Q1 aggregation compares native plaintext against Hermes's constant-time aggregate maintenance. (b) and (c) compare oblivious insertion and deletion latencies for 5 operations against a Scalar FHE baseline. Note that (b) and (c) utilize a logarithmic scale to highlight the O(1) vs. O(N) performance gap.
 }
 \label{fig:tpch_eval}
 \end{figure}
@@ -704,17 +688,15 @@ hg38 & 17.2 GB & 2.6 MB & 6615x \\ \hline
 \section{Conclusion}
 \label{sec:conclusion}
 
-This paper introduces Hermes, a prototype system designed to execute secure and efficient global aggregation queries over homomorphically encrypted data. By incorporating a packed data model with embedded auxiliary aggregates, Hermes achieves constant-time encrypted aggregation while bypassing expensive cryptographic operations. Furthermore, the introduction of data-oblivious mutability primitives allows for dynamic tuple-level insertions and deletions directly on packed ciphertexts via homomorphic shift-and-mask operations. Theoretical analysis confirms that these operations maintain the IND-CPA security guarantees of the underlying BFV scheme while sustaining a practical noise budget.   
+This paper introduces Hermes, a prototype system designed to execute secure and efficient global aggregation queries over homomorphically encrypted data. By incorporating a packed data model with embedded auxiliary aggregates, Hermes achieves constant-time encrypted aggregation while bypassing expensive cryptographic operations. Furthermore, the introduction of mutability primitives allows for dynamic tuple-level insertions and deletions directly on packed ciphertexts via homomorphic shift-and-mask operations. Theoretical analysis confirms that these operations maintain the IND-CPA security guarantees of the underlying BFV scheme while sustaining a practical noise budget.   
 Our implementation and evaluation validate that Hermes yields orders-of-magnitude improvements in global query latency, update throughput, and storage efficiency compared to traditional FHE deployments. 
 
 Our future work will explore the extension of Hermes to support more complex query patterns, such as multi-dimensional groupings and table joins. Additionally, we plan to investigate adaptive packing strategies that dynamically adjust the logical group capacity based on workload characteristics to further optimize performance. 
 
-\section*{Acknowledgments}
-Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
+\section*{Acknowledgments} Results presented in this paper were obtained using the Chameleon testbed supported by the National Science Foundation.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{ref}
-
 
 \clearpage
 \appendix
@@ -744,22 +726,6 @@ We consider the following components:
 
 Thus, any distinguishing advantage of $\mathcal{A}_\text{Hermes}$ implies an advantage in distinguishing $\mathsf{Enc}(v)$ vs $\mathsf{Enc}(v')$, contradicting the IND-CPA security of BFV.
 \end{proof}
-
-% \begin{theorem}
-% If the underlying BFV encryption scheme is IND-CPA secure, then Hermes satisfies slot-update indistinguishability for any polynomial-time adversary $\mathcal{A}$.
-% \end{theorem}
-
-% \begin{proof}
-% We reduce the problem to the IND-CPA security of BFV and the semantic uniformity of the masking and shift primitives. Let $m_{i}$ be a plaintext mask such that $m_{i}[j] = \delta$ if $j = i$, and $0$ otherwise. The insertion operation computes:
-% \[
-% c' = \mathsf{EvalAdd}(c_{\text{shifted}}, \mathsf{EvalMult}(c_\delta, m_i)),
-% \]
-% where $c_{\text{shifted}}$ is the result of a homomorphic rotation and masking on $c$ that preserves all but slot $i$.
-
-% Because $c_\delta = \mathsf{Enc}(\delta)$ is fresh and semantically secure under BFV, and $m_i$ is public and independent of $\delta$, the term $\mathsf{EvalMult}(c_\delta, m_i)$ remains indistinguishable regardless of the value of $i$. The subsequent addition with $c_{\text{shifted}}$ is also homomorphic and does not reveal slot index, since the masked slots are zeroed out beforehand. As a result, the output ciphertext $c'$ is statistically indistinguishable whether insertion occurred at $i_0$ or $i_1$.
-
-% If $\mathcal{A}$ had non-negligible advantage in distinguishing $i_0$ from $i_1$, we could construct a distinguisher $\mathcal{B}$ that breaks IND-CPA security by embedding $i_b$ into the encryption pattern. This contradicts our assumption.
-% \end{proof}
 
 \begin{theorem}
   Hermes guarantees the following three properties for any sequence of homomorphic insertions, deletions, and global aggregations over packed ciphertexts:
@@ -849,17 +815,25 @@ Deploying Hermes on production environments like Ubuntu 24.04 LTS requires caref
 
 Furthermore, all external entry points are wrapped in \texttt{extern `C'} linkage to maintain compatibility with the MySQL symbol resolution logic. The build process is managed via CMake, which handles the static linking of core cryptographic modules while keeping the high level UDF logic relocatable. Diagnostic information and error messages are redirected to the standard error stream, which is automatically captured by the MySQL error log for offline analysis and troubleshooting.
 
-\subsection{Security Engineering and Data Obliviousness}
-
-Hermes is designed to prevent information leakage through execution patterns or side channels. The homomorphic update logic, including insertions and deletions, is implemented using a sequence of fixed operations. For example, the shift and mask procedure for slot updates uses a constant number of Galois rotations and multiplications regardless of the target index. This data oblivious design ensures that the server cannot infer which record was modified by observing the timing or the sequence of API calls.
-
-We also implement rigorous bounds checking for all slot based operations. Any attempt to access an index beyond the logical length of the packed ciphertext results in an immediate error return. The auxiliary metadata slot, which stores the local sum, is protected from direct user modification. These defensive measures prevent malformed SQL queries from compromising the structural integrity of the encrypted database or triggering buffer overflows.
-
 \subsection{Benchmarking and Decryption Harness}
 
 To facilitate performance profiling without the overhead of network communication, Hermes includes a benchmarking harness that allows for local decryption within the server process. This interface is strictly restricted to experimental environments and is not intended for production use. It provides dedicated UDFs like \texttt{HERMES\_DEC\_VECTOR\_SUMMABLE()} to extract scalar results from encrypted aggregates.
 
 The harness utilizes a resident secret key to decrypt result ciphertexts and convert them into standard C++ vectors. We optimize this process by extracting only the requested slot to minimize memory copying. The instrumentation also captures the precise execution time of each homomorphic operator, allowing us to isolate the cryptographic latency from the SQL engine overhead. This detailed profiling was essential for validating the performance gains achieved through the auxiliary sum embedding technique and the vectorized packing model.
+
+\subsection{Foreign Function Interface and Data Parsing}
+
+Bridging the gap between the MySQL C based API and the modern C++17 logic of OpenFHE requires a robust Foreign Function Interface (FFI). All data entering the plugin arrives as raw C pointers within the \texttt{UDF\_ARGS} structure. Hermes implements a custom parsing layer to map these inputs to internal data structures. When numeric data is passed as a string result, the system utilizes the standard \texttt{std::istringstream} object to perform safe conversion to 64 bit signed integers.
+
+For ciphertext management, Hermes avoids the cost of serializing large objects into SQL blobs. Instead, we return a hexadecimal string representation of the memory address. This pointer based approach allows subsequent UDF calls to resolve the ciphertext object by casting the string back to a \texttt{Ciphertext<DCRTPoly>} pointer. To ensure memory safety, every pointer resolution step is accompanied by a validation check to confirm that the address resides within the expected memory segment of the MySQL process.
+
+\subsection{Challenges and Learned Lessons}
+
+Integrating complex cryptographic libraries into a mature database engine reveals several non trivial engineering challenges that are often overlooked in theoretical FHE literature. One primary obstacle is the implicit memory management of the MySQL UDF interface. Specifically, the default 256-byte return buffer for string results is a silent constraint. Exceeding this limit without manual re allocation or careful length tracking leads to silent truncation or memory corruption. Hermes addresses this by implementing a length monitoring layer that bypasses the default buffer when handling large metadata footprints, ensuring that the heavy cryptographic pointers remain intact across the foreign function interface.
+
+Furthermore, maintaining a consistent encryption context across isolated SQL function calls requires a delicate balance between C linkage compatibility and modern C++ idioms. Because UDFs require \texttt{extern `C'} visibility for symbol resolution, the use of RAII and smart pointers for managing OpenFHE objects is restricted at the entry points. This forces the system to rely on manual pointer passing and global heap management, which increases the risk of memory leaks if the MySQL thread handling logic deviates from expected lifecycles. Our experience suggests that the lack of native support for C++ class instances in the UDF interface is a significant hurdle for integrating modern homomorphic libraries.
+
+Finally, we observed that the initialization sequence for homomorphic evaluation keys is extremely sensitive. Failure to generate Galois keys in the precise order, or attempting to regenerate them within a shared library handle, results in undocumented runtime failures that are difficult to trace via standard database logs. Hermes mitigates this by enforcing a singleton-driven initialization protocol that ensures that global cryptographic states are established exactly once during the server startup phase. 
 
 \section{Example APIs}
 \label{appendix:api}
