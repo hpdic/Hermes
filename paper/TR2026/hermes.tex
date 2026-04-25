@@ -1,5 +1,5 @@
-\documentclass[sigconf,review,anonymous]{acmart}
-% \documentclass[sigconf,nonacm]{acmart}
+% \documentclass[sigconf,review,anonymous]{acmart}
+\documentclass[sigconf,nonacm]{acmart}
 
 
 % Title portion
@@ -10,7 +10,7 @@
   \institution{Tacoma School of Engineering and Technology}
   \institution{Paul G. Allen School of Computer Science \& Engineering}
   \city{University of Washington}
-  \country{United States}
+  \country{}
 }
 \email{dzhao@cs.washington.edu}
 
@@ -227,7 +227,7 @@ Hermes adopts a hybrid encoding strategy in which each packed ciphertext stores 
 
 Given a batch of $n-1$ plaintext values $(v_0, v_1, \dots, v_{n-2})$ to be packed into a new ciphertext, the system computes their exact sum $s = \sum_{i=0}^{n-2} v_i$ in the cleartext domain and constructs an extended vector of the form:
 \[
-m = (v_0, v_1, \dots, v_{n-2}, s) \in \mathbb{Z}_t^n
+m = (v_0, v_1, \dots, v_{n-2}, s) \in \mathbb{Z}_t^n,
 \]
 where $t$ remains the plaintext modulus. The extended vector $m$ is then passed to the BFV encoding API to generate a packed polynomial plaintext object, which is subsequently encrypted into a randomized ciphertext. 
 
@@ -742,7 +742,7 @@ We assume a ciphertext $c \leftarrow \mathsf{Encrypt}([v_0, \dots, v_{n-2}, \sig
 
 \paragraph{(1) Correctness of Homomorphic Insertion.}
 Let $v_{\text{new}} \in \mathbb{Z}_t$ be a value inserted into position $i$ (with $0 \leq i \leq n-2$). Define the updated plaintext vector as:
-$$[v_0', \dots, v_{n-2}'] = [v_0, \dots, v_{i-1}, v_{\text{new}}, v_i, \dots, v_{n-3}]$$
+$$[v_0', \dots, v_{n-2}'] = [v_0, \dots, v_{i-1}, v_{\text{new}}, v_i, \dots, v_{n-3}].$$
 The homomorphic insertion process rotates the suffix 
 $$\{v_i, \dots, v_{n-2}\}$$ 
 one position to the right using a Galois automorphism, masks the insertion point $i$ with a one-hot vector $m^{(i)} \in \mathbb{Z}_t^n$ such that $m^{(i)}[i] = 1$ and $0$ elsewhere, and adds $v_{\text{new}} \cdot m^{(i)}$ via plaintext multiplication.
